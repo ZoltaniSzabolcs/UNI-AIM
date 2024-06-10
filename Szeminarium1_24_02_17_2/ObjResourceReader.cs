@@ -46,7 +46,7 @@ namespace UNI_AIM
         private static bool voltTextura = false;
         private static bool voltNormalis = false;
         private static int osszesFaceDrb = 0;
-        public static unsafe GlObject CreateObjectFromResource(GL Gl, string resourceName)
+        public static unsafe GlObject CreateObjectFromResource(GL Gl, uint shaderProgram, string resourceName)
         {
             List<float[]> objVertices = new List<float[]>();
             List<int[]> objFaces = new List<int[]>();
@@ -162,6 +162,7 @@ namespace UNI_AIM
                 glIndexArray.Add((uint)(objFace[2] - 1));
             }
 
+            Gl.UseProgram(shaderProgram);
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
@@ -194,10 +195,10 @@ namespace UNI_AIM
 
             Gl.BindVertexArray(0);
 
-            return new GlObject(vao, vertices, colors, indices, indexArrayLength, Gl);
+            return new GlObject(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl);
         }
 
-        public static unsafe GlObject CreateObjectWithTextureFromResource(GL Gl, string resourceName, string textureName, float[]? defaultColor = null)
+        public static unsafe GlObject CreateObjectWithTextureFromResource(GL Gl,uint shaderProgram, string resourceName, string textureName, float[]? defaultColor = null)
         {
             voltNormalis = false; // ide bekellett tegyem, mert valamiert ha mar meg volt hivva ez a fuggveny akkor true-n maradt az erteke
             voltTextura = false;
@@ -342,6 +343,7 @@ namespace UNI_AIM
                 glIndexArray.Add((uint)(i));
             }
 
+            Gl.UseProgram(shaderProgram);
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
@@ -384,7 +386,7 @@ namespace UNI_AIM
 
                 Gl.BindVertexArray(0);
 
-                return new GlObject(vao, vertices, colors, indices, indexArrayLength, Gl);
+                return new GlObject(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl);
 
             }
             else
@@ -423,7 +425,7 @@ namespace UNI_AIM
 
                 Gl.BindVertexArray(0);
 
-                return new GlObject(vao, vertices, colors, indices, indexArrayLength, Gl, texture);
+                return new GlObject(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl, texture);
             }
         }
 

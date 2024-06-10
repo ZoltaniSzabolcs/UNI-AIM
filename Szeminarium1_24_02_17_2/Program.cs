@@ -27,11 +27,11 @@ namespace UNI_AIM
 
         private static GL Gl;
 
-        private static uint program;
-
         private static GlCube skyBox;
 
         private static GlObjectWeapon ak47;
+
+        private static Crosshair crosshair;
 
         // imgui controller
         private static ImGuiController controller;
@@ -64,6 +64,21 @@ namespace UNI_AIM
         private const string SpecularStrengthVariableName = "specularStrength";
         private const string DiffuseStrengthVariableName = "diffuseStrength";
 
+        private static uint TexturesShaderProgram;
+        private static uint CrosshairshaderProgram;
+        
+        private static uint vshader;
+        private static uint fshader;
+
+        private static string vshaderName = "VertexShader.vert";
+        private static string fshaderName = "FragmentShader.frag";
+        
+        private static uint CrosshairVshader;
+        private static uint CrosshairFshader;
+
+        private static string CrosshairVshaderName = "CrosshairVertexShader.vert";
+        private static string CrosshairFshaderName = "CrosshairFragmentShader.frag";
+
         static void Main(string[] args)
         {
             WindowOptions windowOptions = WindowOptions.Default;
@@ -81,6 +96,7 @@ namespace UNI_AIM
             window.Closing += Window_Closing;
 
             window.Run();
+            CheckError();
 
             window.Dispose();
         }
@@ -96,13 +112,13 @@ namespace UNI_AIM
                 keyboard.KeyDown += Keyboard_KeyDown;
                 primaryKeyboard = keyboard;
             }
-            Console.WriteLine($"Keyboars count: {inputContext.Keyboards.Count} \nIf the keyboard is not working try unplugging some");
+            Console.WriteLine($"Keyboard count: {inputContext.Keyboards.Count} \nIf the keyboard is not working try unplugging some");
             if (primaryKeyboard != null)
             {
                 primaryKeyboard.KeyDown += Keyboard_KeyDown;
                 primaryKeyboard.KeyUp += Keyboard_KeyUp;
             }
-
+            Console.WriteLine($"Mice count: {inputContext.Mice.Count} \nIf the mouse is not working try unplugging some");
             for (int i = 0; i < inputContext.Mice.Count; i++)
             {
                 inputContext.Mice[i].Cursor.CursorMode = CursorMode.Raw;
@@ -115,9 +131,15 @@ namespace UNI_AIM
 
             controller = new ImGuiController(Gl, window, inputContext);
 
-            SetUpObjects();
 
-            LinkProgram();
+            CrosshairshaderProgram =  LinkProgram(CrosshairVshader, CrosshairFshader, vshaderName, fshaderName);
+            CheckError();
+
+            TexturesShaderProgram = LinkProgram(vshader, fshader, vshaderName, fshaderName);
+            CheckError();
+
+            SetUpObjects();
+            CheckError();
 
             //Gl.Enable(EnableCap.CullFace);
 
@@ -125,21 +147,21 @@ namespace UNI_AIM
             Gl.DepthFunc(DepthFunction.Lequal);
         }
 
-        private static void LinkProgram()
+        private static uint LinkProgram(uint vshader, uint fshader, string vshaderName, string fshaderName)
         {
-            uint vshader = Gl.CreateShader(ShaderType.VertexShader);
-            uint fshader = Gl.CreateShader(ShaderType.FragmentShader);
+            vshader = Gl.CreateShader(ShaderType.VertexShader);
+            fshader = Gl.CreateShader(ShaderType.FragmentShader);
 
-            Gl.ShaderSource(vshader, ReadShader("VertexShader.vert"));
+            Gl.ShaderSource(vshader, ReadShader(vshaderName));
             Gl.CompileShader(vshader);
             Gl.GetShader(vshader, ShaderParameterName.CompileStatus, out int vStatus);
             if (vStatus != (int)GLEnum.True)
                 throw new Exception("Vertex shader failed to compile: " + Gl.GetShaderInfoLog(vshader));
 
-            Gl.ShaderSource(fshader, ReadShader("FragmentShader.frag"));
+            Gl.ShaderSource(fshader, ReadShader(fshaderName));
             Gl.CompileShader(fshader);
 
-            program = Gl.CreateProgram();
+            uint program = Gl.CreateProgram();
             Gl.AttachShader(program, vshader);
             Gl.AttachShader(program, fshader);
             Gl.LinkProgram(program);
@@ -152,6 +174,8 @@ namespace UNI_AIM
             Gl.DetachShader(program, fshader);
             Gl.DeleteShader(vshader);
             Gl.DeleteShader(fshader);
+            CheckError();
+            return program;
         }
         private static string ReadShader(string shaderFileName)
         {
@@ -201,9 +225,7 @@ namespace UNI_AIM
             // multithreaded
             // make sure it is threadsafe
             // NO GL calls
-
             cubeArrangementModel.AdvanceTime(deltaTime);
-
             float moveSpeed =(float)deltaTime;
 
             if (primaryKeyboard.IsKeyPressed(Key.W))
@@ -239,7 +261,6 @@ namespace UNI_AIM
             }
 
             ak47.FollowCamera(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up, cameraDescriptor.Right);
-
             controller.Update((float)deltaTime);
         }
 
@@ -247,11 +268,11 @@ namespace UNI_AIM
         {
             //Console.WriteLine($"Render after {deltaTime} [s].");
 
+            CheckError();
             // GL here
+            Gl.UseProgram(TexturesShaderProgram);
             Gl.Clear(ClearBufferMask.ColorBufferBit);
             Gl.Clear(ClearBufferMask.DepthBufferBit);
-
-            Gl.UseProgram(program);
 
             SetViewMatrix();
             SetProjectionMatrix();
@@ -266,9 +287,13 @@ namespace UNI_AIM
             //SetDiffuseStrength();
 
             DrawSkyBox();
-
+            CheckError();
             DrawGLObjects();
+            CheckError();
 
+            Gl.UseProgram(CrosshairshaderProgram);
+            DrawCrosshair();
+            CheckError();
             //ImguiSettings();
             //controller.Render();
         }
@@ -320,7 +345,7 @@ namespace UNI_AIM
         }
         private static unsafe void SetLightColor()
         {
-            int location = Gl.GetUniformLocation(program, LightColorVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, LightColorVariableName);
 
             if (location == -1)
             {
@@ -333,7 +358,7 @@ namespace UNI_AIM
 
         private static unsafe void SetLightPosition()
         {
-            int location = Gl.GetUniformLocation(program, LightPositionVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, LightPositionVariableName);
 
             if (location == -1)
             {
@@ -345,7 +370,7 @@ namespace UNI_AIM
         }
         private static unsafe void SetViewerPosition()
         {
-            int location = Gl.GetUniformLocation(program, ViewPosVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, ViewPosVariableName);
 
             if (location == -1)
             {
@@ -357,7 +382,7 @@ namespace UNI_AIM
         }
         private static unsafe void SetShininess()
         {
-            int location = Gl.GetUniformLocation(program, ShininessVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, ShininessVariableName);
 
             if (location == -1)
             {
@@ -408,7 +433,7 @@ namespace UNI_AIM
             SetModelMatrix(modelMatrix);
             Gl.BindVertexArray(skyBox.Vao);
 
-            int textureLocation = Gl.GetUniformLocation(program, TextureUniformVariableName);
+            int textureLocation = Gl.GetUniformLocation(TexturesShaderProgram, TextureUniformVariableName);
             if (textureLocation == -1)
             {
                 throw new Exception($"{TextureUniformVariableName} uniform not found on shader.");
@@ -431,13 +456,20 @@ namespace UNI_AIM
 
         private static unsafe void DrawGLObjects()
         {
-            ak47.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            ak47.Render(TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            CheckError();
             //pigeon2.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+        }
+
+        private static void DrawCrosshair()
+        {
+            crosshair.Render();
+            CheckError();
         }
 
         private static unsafe void SetModelMatrix(Matrix4X4<float> modelMatrix)
         {
-            int location = Gl.GetUniformLocation(program, ModelMatrixVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, ModelMatrixVariableName);
             if (location == -1)
             {
                 throw new Exception($"{ModelMatrixVariableName} uniform not found on shader.");
@@ -455,7 +487,7 @@ namespace UNI_AIM
             Matrix4X4<float> modelInvers;
             Matrix4X4.Invert<float>(modelMatrixWithoutTranslation, out modelInvers);
             Matrix3X3<float> normalMatrix = new Matrix3X3<float>(Matrix4X4.Transpose(modelInvers));
-            location = Gl.GetUniformLocation(program, NormalMatrixVariableName);
+            location = Gl.GetUniformLocation(TexturesShaderProgram, NormalMatrixVariableName);
             if (location == -1)
             {
                 throw new Exception($"{NormalMatrixVariableName} uniform not found on shader.");
@@ -473,12 +505,19 @@ namespace UNI_AIM
             float[] face5Color = [0.0f, 1.0f, 1.0f, 1.0f];
             float[] face6Color = [1.0f, 1.0f, 0.0f, 1.0f];
 
-            skyBox = GlCube.CreateInteriorCube(Gl, "");
+            Gl.UseProgram(TexturesShaderProgram);
+            skyBox = GlCube.CreateInteriorCube(Gl, TexturesShaderProgram,"");
             //pigeon = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "12249_Bird_v1_L2.obj", "12249_Bird_v1_diff.jpg");
-            GlObject glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "Çè-47.obj", "123456_wire_115115115_color.png");
-            ak47 = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
+            GlObject glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, TexturesShaderProgram, "Çè-47.obj", "123456_wire_115115115_color.png");
+            ak47 = new GlObjectWeapon(TexturesShaderProgram, glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
             ak47.Scale = Matrix4X4.CreateScale(0.001f);
             ak47.RotationMatrix = (Matrix4X4<float>)Matrix4X4.CreateRotationY((float)Math.PI);
+            CheckError();
+
+            Gl.UseProgram(CrosshairshaderProgram);
+            //crosshair = Crosshair.CreateCrosshair(Gl, CrosshairshaderProgram);
+            crosshair = new Crosshair(Gl, CrosshairshaderProgram);
+            CheckError();
             //glObject.ReleaseGlObject();
         }
 
@@ -491,12 +530,15 @@ namespace UNI_AIM
             //}
             skyBox.ReleaseGlObject();
             ak47.ReleaseGlObject();
+            //crosshair.ReleaseCrosshair();
+            crosshair.Dispose();
             //pigeon2.ReleaseGlObject();
         }
         private static unsafe void SetProjectionMatrix()
         {
+            Gl.UseProgram(TexturesShaderProgram);
             var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>((float)Math.PI / 2f, 1024f / 768f, 0.1f, 5000);
-            int location = Gl.GetUniformLocation(program, ProjectionMatrixVariableName);
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, ProjectionMatrixVariableName);
 
             if (location == -1)
             {
@@ -509,17 +551,16 @@ namespace UNI_AIM
 
         private static unsafe void SetViewMatrix()
         {
+            Gl.UseProgram(TexturesShaderProgram);
             Matrix4X4<float> viewMatrix = cameraDescriptor.getView();
             //viewMatrix = Matrix4X4.CreateLookAt(cameraDescriptor.PositionInWorld, cameraDescriptor.TargetInWorld, cameraDescriptor.UpVector);
-            int location = Gl.GetUniformLocation(program, ViewMatrixVariableName);
-
+            int location = Gl.GetUniformLocation(TexturesShaderProgram, ViewMatrixVariableName);
             if (location == -1)
             {
                 throw new Exception($"{ViewMatrixVariableName} uniform not found on shader.");
             }
-
             Gl.UniformMatrix4(location, 1, false, (float*)&viewMatrix);
-            CheckError();
+            //CheckError();
         }
 
         public static void CheckError()

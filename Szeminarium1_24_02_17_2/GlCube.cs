@@ -6,13 +6,14 @@ namespace UNI_AIM
 {
     internal class GlCube : GlObject
     {
-        private GlCube(uint vao, uint vertices, uint colors, uint indeces, uint indexArrayLength, GL gl, uint texture = 0)
-            : base(vao, vertices, colors, indeces, indexArrayLength, gl, texture)
+        private GlCube(uint shaderProgram, uint vao, uint vertices, uint colors, uint indeces, uint indexArrayLength, GL gl, uint texture = 0)
+            : base(shaderProgram, vao, vertices, colors, indeces, indexArrayLength, gl, texture)
         {
         }
 
-        public static unsafe GlCube CreateCubeWithFaceColors(GL Gl, float[] face1Color, float[] face2Color, float[] face3Color, float[] face4Color, float[] face5Color, float[] face6Color)
+        public static unsafe GlCube CreateCubeWithFaceColors(GL Gl, uint shaderProgram, float[] face1Color, float[] face2Color, float[] face3Color, float[] face4Color, float[] face5Color, float[] face6Color)
         {
+            Gl.UseProgram(shaderProgram);
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
@@ -136,11 +137,12 @@ namespace UNI_AIM
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
             uint indexArrayLength = (uint)indexArray.Length;
 
-            return new GlCube(vao, vertices, colors, indices, indexArrayLength, Gl);
+            return new GlCube(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl);
         }
 
-        public static unsafe GlCube CreateSquare(GL Gl, float[] faceColor)
+        public static unsafe GlCube CreateSquare(GL Gl, uint shaderProgram, float[] faceColor)
         {
+            Gl.UseProgram(shaderProgram);
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
@@ -193,11 +195,12 @@ namespace UNI_AIM
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
             uint indexArrayLength = (uint)indexArray.Length;
 
-            return new GlCube(vao, vertices, colors, indices, indexArrayLength, Gl);
+            return new GlCube(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl);
         }
 
-        public static unsafe GlCube CreateInteriorCube(GL Gl, string textureResourceId)
+        public static unsafe GlCube CreateInteriorCube(GL Gl, uint shaderProgram, string textureResourceId)
         {
+            Gl.UseProgram(shaderProgram);
             uint vao = Gl.GenVertexArray();
             Gl.BindVertexArray(vao);
 
@@ -312,7 +315,7 @@ namespace UNI_AIM
             Gl.BindBuffer(GLEnum.ArrayBuffer, 0);
             uint indexArrayLength = (uint)indexArray.Length;
 
-            return new GlCube(vao, vertices, colors, indices, indexArrayLength, Gl, texture);
+            return new GlCube(shaderProgram, vao, vertices, colors, indices, indexArrayLength, Gl, texture);
         }
 
         private static unsafe ImageResult ReadTextureImage(string textureResource)

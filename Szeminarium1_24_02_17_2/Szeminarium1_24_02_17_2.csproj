@@ -21,6 +21,8 @@
     <None Remove="Resources\trumpet.obj" />
     <None Remove="Resources\void.png" />
     <None Remove="Resources\Çè-47.obj" />
+    <None Remove="Shaders\CrosshairFragmentShader.frag" />
+    <None Remove="Shaders\CrosshairVertexShader.vert" />
     <None Remove="Shaders\FragmentShader.frag" />
     <None Remove="Shaders\VertexShader.vert" />
   </ItemGroup>
@@ -37,7 +39,9 @@
     <EmbeddedResource Include="Resources\sphere.obj" />
     <EmbeddedResource Include="Resources\void.png" />
     <EmbeddedResource Include="Resources\Çè-47.obj" />
+    <EmbeddedResource Include="Shaders\CrosshairFragmentShader.frag" />
     <EmbeddedResource Include="Shaders\FragmentShader.frag" />
+    <EmbeddedResource Include="Shaders\CrosshairVertexShader.vert" />
     <EmbeddedResource Include="Shaders\VertexShader.vert" />
   </ItemGroup>
 
