@@ -15,6 +15,7 @@ namespace UNI_AIM
         private static Vector3D<float> CameraPosition = new Vector3D<float>(0.0f, 0.0f, 20.0f);
         private static Vector3D<float> CameraFront = new Vector3D<float>(0.0f, 0.0f, -1.0f);
         private static Vector3D<float> CameraUp = Vector3D<float>.UnitY;
+        private static Vector3D<float> CameraRight = Vector3D<float>.UnitX;
         private static Vector3D<float> CameraDirection = Vector3D<float>.Zero;
         private static float CameraYaw = -90f;
         private static float CameraPitch = 0f;
@@ -22,8 +23,8 @@ namespace UNI_AIM
         private static float CameraMoveSpeed = 2.5f;
         //Used to track change in mouse movement to allow for moving of the Camera
         private static Vector2 LastMousePosition;
-        private static float CameraSlowerMoveSpeed = 2.5f;
-        private static float CameraFasterMoveSpeed = 12.5f;
+        private static float CameraSlowerMoveSpeed = 50.5f;
+        private static float CameraFasterMoveSpeed = 100.5f;
 
 
         private static float DegreesToRadians(float degrees)
@@ -50,7 +51,7 @@ namespace UNI_AIM
                 CameraDirection.Y = MathF.Sin(DegreesToRadians(CameraPitch));
                 CameraDirection.Z = MathF.Sin(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
                 CameraFront = Vector3D.Normalize(CameraDirection);
-
+                CameraRight = Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp));
             }
         }
         public unsafe void ZoomMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
@@ -68,6 +69,18 @@ namespace UNI_AIM
         }
 
         public Vector3D<float> Position { get { return CameraPosition; } }
+        public Vector3D<float> Front { get { return CameraFront; } }
+        public Vector3D<float> Up { get { return CameraUp; } }
+        public Vector3D<float> Right { get { return CameraRight; } }
+
+        public float getCameraYaw()
+        {
+            return CameraYaw;
+        }
+        public float getCameraPitch()
+        {
+            return CameraPitch;
+        }
         public void MoveUp(float moveSpeed)
         {
             CameraPosition += CameraMoveSpeed * moveSpeed * CameraUp;

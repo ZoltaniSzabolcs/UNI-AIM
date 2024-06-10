@@ -31,7 +31,7 @@ namespace UNI_AIM
 
         private static GlCube skyBox;
 
-        private static GlObject ak47;
+        private static GlObjectWeapon ak47;
 
         // imgui controller
         private static ImGuiController controller;
@@ -237,6 +237,8 @@ namespace UNI_AIM
                 //Move down
                 cameraDescriptor.MoveDown(moveSpeed);
             }
+
+            ak47.FollowCamera(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up, cameraDescriptor.Right);
 
             controller.Update((float)deltaTime);
         }
@@ -473,11 +475,12 @@ namespace UNI_AIM
 
             skyBox = GlCube.CreateInteriorCube(Gl, "");
             //pigeon = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "12249_Bird_v1_L2.obj", "12249_Bird_v1_diff.jpg");
-            ak47 = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "Çè-47.obj", "123456_wire_115115115_color.png");
-            ak47.ModelMatrix = Matrix4X4.CreateScale(0.75f);
+            GlObject glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "Çè-47.obj", "123456_wire_115115115_color.png");
+            ak47 = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
+            ak47.Scale = Matrix4X4.CreateScale(0.001f);
+            ak47.RotationMatrix = (Matrix4X4<float>)Matrix4X4.CreateRotationY((float)Math.PI);
+            //glObject.ReleaseGlObject();
         }
-
-
 
         private static void Window_Closing()
         {

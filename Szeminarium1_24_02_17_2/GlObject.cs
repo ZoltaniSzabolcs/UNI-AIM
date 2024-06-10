@@ -13,7 +13,10 @@ namespace UNI_AIM
         public uint Colors { get; }
         public uint Indices { get; }
         public uint IndexArrayLength { get; }
+        public Matrix4X4<float> Scale;
+        public Matrix4X4<float> Translation;
         public Matrix4X4<float> ModelMatrix;
+        public Matrix4X4<float> RotationMatrix;
 
         private GL Gl;
 
@@ -26,7 +29,9 @@ namespace UNI_AIM
             this.IndexArrayLength = indexArrayLength;
             this.Gl = gl;
             this.Texture = texture;
-            this.ModelMatrix = Matrix4X4.CreateScale(10f);
+            this.Scale = Matrix4X4.CreateScale(10f);
+            this.Translation = Matrix4X4.CreateTranslation(0f, 0f, 0f);
+            this.ModelMatrix = Matrix4X4.CreateScale(1f);
         }
 
         public unsafe void Render(uint program, string textureUniformVariableName, string ModelMatrixVariableName, string NormalMatrixVariableName)
