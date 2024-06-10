@@ -19,8 +19,11 @@ namespace UNI_AIM
         private static float CameraYaw = -90f;
         private static float CameraPitch = 0f;
         private static float CameraZoom = 45f;
+        private static float CameraMoveSpeed = 2.5f;
         //Used to track change in mouse movement to allow for moving of the Camera
         private static Vector2 LastMousePosition;
+
+
         private static float DegreesToRadians(float degrees)
         {
             return MathF.PI / 180f * degrees;
@@ -65,32 +68,32 @@ namespace UNI_AIM
         public Vector3D<float> Position { get { return CameraPosition; } }
         public void MoveUp(float moveSpeed)
         {
-            CameraPosition += moveSpeed * CameraUp;
+            CameraPosition += CameraMoveSpeed * moveSpeed * CameraUp;
         }
 
         public void MoveDown(float moveSpeed)
         {
-            CameraPosition -= moveSpeed * CameraUp;
+            CameraPosition -= CameraMoveSpeed * moveSpeed * CameraUp;
         }
 
         public void MoveRight(float moveSpeed)
         {
-            CameraPosition += Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
+            CameraPosition += CameraMoveSpeed * Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
         }
 
         public void MoveLeft(float moveSpeed)
         {
-            CameraPosition -= Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
+            CameraPosition -= CameraMoveSpeed * Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
         }
 
         public void MoveForward(float moveSpeed)
         {
-            CameraPosition += moveSpeed * CameraFront;
+            CameraPosition += CameraMoveSpeed * moveSpeed * CameraFront;
         }
 
         public void MoveBackward(float moveSpeed)
         {
-            CameraPosition -= moveSpeed * CameraFront;
+            CameraPosition -= CameraMoveSpeed * moveSpeed * CameraFront;
         }
     }
 }

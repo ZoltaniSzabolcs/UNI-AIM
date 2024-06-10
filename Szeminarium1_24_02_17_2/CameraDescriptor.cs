@@ -1,208 +1,111 @@
-﻿using Silk.NET.Maths;
+﻿using System.Numerics;
+using Silk.NET.Input;
+using Silk.NET.Maths;
 
-using System.Numerics;
+/* Zoltani Szabolcs
+ * 524/2
+ * zsim2317
+ * */
 
 namespace UNI_AIM
 {
     internal class CameraDescriptor
     {
-        private double DistanceToOrigin = 10;
+        //Setup the camera's location, directions, and movement speed
+        private static Vector3D<float> CameraPosition = new Vector3D<float>(0.0f, 0.0f, 20.0f);
+        private static Vector3D<float> CameraFront = new Vector3D<float>(0.0f, 0.0f, -1.0f);
+        private static Vector3D<float> CameraUp = Vector3D<float>.UnitY;
+        private static Vector3D<float> CameraDirection = Vector3D<float>.Zero;
+        private static float CameraYaw = -90f;
+        private static float CameraPitch = 0f;
+        private static float CameraZoom = 45f;
+        private static float CameraMoveSpeed = 2.5f;
+        //Used to track change in mouse movement to allow for moving of the Camera
+        private static Vector2 LastMousePosition;
+        private static float CameraSlowerMoveSpeed = 2.5f;
+        private static float CameraFasterMoveSpeed = 12.5f;
 
-        private double EnabledDistanceFromOrigin = 1300;
 
-        public float SpeedFactor = 1.1f;
-
-        private double AngleToZYPlane = 0;
-
-        private double AngleToZXPlane = 0;
-
-        private const double DistanceScaleFactor = 1.01;
-
-        private const double AngleChangeStepSize = Math.PI / 180;
-
-        // a jarkalashoz
-        private Vector3D<float> cameraPosition;
-        private double yaw = -90;
-        private double pitch = 0;
-
-        public CameraDescriptor(Vector3D<float> pos)
+        private static float DegreesToRadians(float degrees)
         {
-            cameraPosition = pos;
+            return MathF.PI / 180f * degrees;
         }
-
-        public void setCameraPosition(Vector3D<float> newPos)
+        public unsafe void LookAtMouse(IMouse mouse, Vector2 position)
         {
-            cameraPosition = newPos;
-        }
-
-        // a kamera upvectora mindig felfele y-ba mutat
-        public Vector3D<float> UpVector
-        {
-            get
+            var lookSensitivity = 0.1f;
+            if (LastMousePosition == default) { LastMousePosition = position; }
+            else
             {
-                return new Vector3D<float>(0f, 1f, 0f);
+                var xOffset = (position.X - LastMousePosition.X) * lookSensitivity;
+                var yOffset = (position.Y - LastMousePosition.Y) * lookSensitivity;
+                LastMousePosition = position;
+
+                CameraYaw += xOffset;
+                CameraPitch -= yOffset;
+
+                //We don't want to be able to look behind us by going over our head or under our feet so make sure it stays within these bounds
+                CameraPitch = Math.Clamp(CameraPitch, -89.0f, 89.0f);
+
+                CameraDirection.X = MathF.Cos(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
+                CameraDirection.Y = MathF.Sin(DegreesToRadians(CameraPitch));
+                CameraDirection.Z = MathF.Sin(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
+                CameraFront = Vector3D.Normalize(CameraDirection);
+
             }
         }
-
-
-        // ezt akkor hasznaljuk ha bevan pipalva hogy a kamera az origoba nez
-        public Vector3D<float> Position
+        public unsafe void ZoomMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
         {
-            get
-            {
-                return GetPointFromAngles(DistanceToOrigin, AngleToZYPlane, AngleToZXPlane);
-            }
+            //We don't want to be able to zoom in too close or too far away so clamp to these values
+            CameraZoom = Math.Clamp(CameraZoom - scrollWheel.Y, 1.0f, 45f);
         }
-        public Vector3D<float> Target
+        public Matrix4X4<float> getView()
         {
-            get
-            {
-                // For the moment the camera is always pointed at the origin.
-                return Vector3D<float>.Zero;
-            }
+            return Matrix4X4.CreateLookAt<float>(CameraPosition, CameraPosition + CameraFront, CameraUp);
+        }
+        public Matrix4X4<float> getProjection(Vector2D<int> size)
+        {
+            return Matrix4X4.CreatePerspectiveFieldOfView(DegreesToRadians(CameraZoom), (float)size.X / size.Y, 0.1f, 100.0f);
         }
 
-
-
-        // eztet hasznaljuk ha nincs bepipalva hogy a kamera az origoba nez
-        public Vector3D<float> PositionInWorld
+        public Vector3D<float> Position { get { return CameraPosition; } }
+        public void MoveUp(float moveSpeed)
         {
-            get
-            {
-                return cameraPosition;
-            }
-        }
-        // maskepp kell szamolni mert nem mindig az origoba nezunk itt
-        public Vector3D<float> TargetInWorld
-        {
-            get
-            {
-                return cameraPosition + GetCameraFront();
-            }
+            CameraPosition += CameraMoveSpeed * moveSpeed * CameraUp;
         }
 
-        public Vector3D<float> RightVector
+        public void MoveDown(float moveSpeed)
         {
-            get { return Vector3D.Cross(GetCameraFront(), UpVector) * (SpeedFactor + 1f); }  // meg +1 kellett a SpeedFactorhoz mert hanem tul lassu volt
+            CameraPosition -= CameraMoveSpeed * moveSpeed * CameraUp;
         }
 
-        public void IncreaseZXAngle()
+        public void MoveRight(float moveSpeed)
         {
-            AngleToZXPlane += AngleChangeStepSize;
+            CameraPosition += CameraMoveSpeed * Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
         }
 
-        public void DecreaseZXAngle()
+        public void MoveLeft(float moveSpeed)
         {
-            AngleToZXPlane -= AngleChangeStepSize;
+            CameraPosition -= CameraMoveSpeed * Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp)) * moveSpeed;
         }
 
-        public void IncreaseZYAngle()
+        public void MoveForward(float moveSpeed)
         {
-            AngleToZYPlane += AngleChangeStepSize;
-
+            CameraPosition += CameraMoveSpeed * moveSpeed * CameraFront;
         }
 
-        public void DecreaseZYAngle()
+        public void MoveBackward(float moveSpeed)
         {
-            AngleToZYPlane -= AngleChangeStepSize;
+            CameraPosition -= CameraMoveSpeed * moveSpeed * CameraFront;
         }
 
-        public void IncreaseDistance()
+        public void MoveFaster()
         {
-            if (DistanceToOrigin + SpeedFactor < EnabledDistanceFromOrigin) DistanceToOrigin += SpeedFactor;
+            CameraMoveSpeed = CameraFasterMoveSpeed;
         }
 
-        public void DecreaseDistance()
+        public void MoveSlower()
         {
-            if (DistanceToOrigin - SpeedFactor < EnabledDistanceFromOrigin)
-            {
-                // hogy ne lehessen annyir kozel menni hogy atforduljon
-                if (DistanceToOrigin - SpeedFactor < 0)
-                {
-                    DistanceToOrigin = 1;
-                }
-                else
-                {
-                    DistanceToOrigin -= SpeedFactor;
-                }
-            }
-        }
-
-        // a jarkalashoz kell
-        public double Yaw
-        {
-            get { return yaw; }
-            set { this.yaw = value; }
-        }
-
-        public double Pitch
-        {
-            get { return pitch; }
-            set { this.pitch = value; }
-        }
-
-        // korlatnak van hogy ne menjunk ki a skyboxbol
-        private double calculateDistanceFromOrigin(Vector3D<float> camerapoz)
-        {
-            return Vector3.Distance((Vector3)camerapoz, Vector3.Zero);
-        }
-
-        public void MoveBack()
-        {
-            // korlatnak van hogy ne menjunk ki a skyboxbol
-            if (calculateDistanceFromOrigin(cameraPosition - GetCameraFront()) < EnabledDistanceFromOrigin) cameraPosition -= GetCameraFront();
-        }
-
-        public void MoveFront()
-        {
-            if (calculateDistanceFromOrigin(cameraPosition + GetCameraFront()) < EnabledDistanceFromOrigin) cameraPosition += GetCameraFront();
-        }
-
-        public void MoveLeft()
-        {
-            if (calculateDistanceFromOrigin(cameraPosition - RightVector) < EnabledDistanceFromOrigin) cameraPosition -= RightVector;
-        }
-
-        public void MoveRight()
-        {
-            if (calculateDistanceFromOrigin(cameraPosition + RightVector) < EnabledDistanceFromOrigin) cameraPosition += RightVector;
-        }
-
-        public void GoDown()
-        {
-            if (calculateDistanceFromOrigin(cameraPosition - this.UpVector * SpeedFactor) < EnabledDistanceFromOrigin) cameraPosition -= this.UpVector * SpeedFactor;
-        }
-
-        public void GoUp()
-        {
-            if (calculateDistanceFromOrigin(cameraPosition + this.UpVector * SpeedFactor) < EnabledDistanceFromOrigin) cameraPosition += this.UpVector * SpeedFactor;
-        }
-
-        private static Vector3D<float> GetPointFromAngles(double distanceToOrigin, double angleToMinZYPlane, double angleToMinZXPlane)
-        {
-            var x = distanceToOrigin * Math.Cos(angleToMinZXPlane) * Math.Sin(angleToMinZYPlane);
-            var z = distanceToOrigin * Math.Cos(angleToMinZXPlane) * Math.Cos(angleToMinZYPlane);
-            var y = distanceToOrigin * Math.Sin(angleToMinZXPlane);
-
-            return new Vector3D<float>((float)x, (float)y, (float)z);
-        }
-
-        // visszateritti hova nez a kamera eleje
-        public Vector3D<float> GetCameraFront()
-        {
-            Vector3D<float> front;
-            front.X = MathF.Cos((float)yaw * (MathF.PI / 180)) * MathF.Cos((float)pitch * (MathF.PI / 180));
-            front.Y = MathF.Sin((float)pitch * (MathF.PI / 180));
-            front.Z = MathF.Sin((float)yaw * (MathF.PI / 180)) * MathF.Cos((float)pitch * (MathF.PI / 180));
-
-            front.X *= (float)SpeedFactor;
-            front.Y *= (float)SpeedFactor;
-            front.Z *= (float)SpeedFactor;
-
-            //return Vector3D.Normalize(front); // nem kell a normalizalas hogy mukodjon a sebesseg, mert jol kiszamolja
-            // a kamera merre nez a yaw es pitch fuggvenyeben es azt hozzaadjuk a cameraPositionhoz es akkor abba az iranyba
-            // megyunk, es ezt megskalaztuk es ugy lesz sebessegunk
-            return front;
+            CameraMoveSpeed = CameraSlowerMoveSpeed;
         }
     }
 }

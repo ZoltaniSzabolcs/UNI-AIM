@@ -15,8 +15,8 @@ namespace UNI_AIM
 {
     internal static class Program
     {
-        //private static CameraDescriptor cameraDescriptor = new();
-        private static CameraDescriptor cameraDescriptor = new CameraDescriptor(new Vector3D<float>(0f, 0f, 20f));
+        private static CameraDescriptor cameraDescriptor = new();
+        //private static CameraDescriptor cameraDescriptor = new CameraDescriptor(new Vector3D<float>(0f, 0f, 20f));
 
         private static CubeArrangementModel cubeArrangementModel = new();
 
@@ -100,14 +100,15 @@ namespace UNI_AIM
             if (primaryKeyboard != null)
             {
                 primaryKeyboard.KeyDown += Keyboard_KeyDown;
+                primaryKeyboard.KeyUp += Keyboard_KeyUp;
             }
 
-            //for (int i = 0; i < inputContext.Mice.Count; i++)
-            //{
-            //    inputContext.Mice[i].Cursor.CursorMode = CursorMode.Raw;
-            //    inputContext.Mice[i].MouseMove += OnMouseMove;
-            //    inputContext.Mice[i].Scroll += OnMouseWheel;
-            //}
+            for (int i = 0; i < inputContext.Mice.Count; i++)
+            {
+                inputContext.Mice[i].Cursor.CursorMode = CursorMode.Raw;
+                inputContext.Mice[i].MouseMove += OnMouseMove;
+                inputContext.Mice[i].Scroll += OnMouseWheel;
+            }
 
             Gl = window.CreateOpenGL();
             Gl.ClearColor(System.Drawing.Color.DimGray);
@@ -161,27 +162,38 @@ namespace UNI_AIM
         private static void Keyboard_KeyDown(IKeyboard keyboard, Key key, int arg3)
         {
             //Console.WriteLine("Key pressed");
-            //switch (key)
-            //{
-            //    case Key.Q:
-            //        RotateSide('q');
-            //        break;
-            //}
+            switch (key)
+            {
+                case Key.ShiftLeft:
+                    cameraDescriptor.MoveFaster();
+                    break;
+            }
         }
 
-        //private static unsafe void OnMouseMove(IMouse mouse, Vector2 position)
-        //{
-        //    //if (mouse.IsButtonPressed(MouseButton.Right))
-        //    //{
-        //    //    cameraDescriptor.LookAtMouse(mouse, position);
-        //    //}
-        //    cameraDescriptor.LookAtMouse(mouse, position);
-        //}
+        private static void Keyboard_KeyUp(IKeyboard keyboard, Key key, int arg3)
+        {
+            //Console.WriteLine("Key released");
+            switch (key)
+            {
+                case Key.ShiftLeft:
+                    cameraDescriptor.MoveSlower();
+                    break;
+            }
+        }
 
-        //private static unsafe void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
-        //{
-        //    cameraDescriptor.ZoomMouseWheel(mouse, scrollWheel);
-        //}
+        private static unsafe void OnMouseMove(IMouse mouse, Vector2 position)
+        {
+            //if (mouse.IsButtonPressed(MouseButton.Right))
+            //{
+            //    cameraDescriptor.LookAtMouse(mouse, position);
+            //}
+            cameraDescriptor.LookAtMouse(mouse, position);
+        }
+
+        private static unsafe void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
+        {
+            cameraDescriptor.ZoomMouseWheel(mouse, scrollWheel);
+        }
 
         private static void Window_Update(double deltaTime)
         {
@@ -192,84 +204,39 @@ namespace UNI_AIM
 
             cubeArrangementModel.AdvanceTime(deltaTime);
 
-            //var moveSpeed = 2.5f * (float)deltaTime;
+            float moveSpeed =(float)deltaTime;
 
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad5))
-            //{
-            //    //Move forwards
-            //    cameraDescriptor.MoveForward(moveSpeed);
+            if (primaryKeyboard.IsKeyPressed(Key.W))
+            {
+                //Move forwards
+                cameraDescriptor.MoveForward(moveSpeed);
 
-            //}
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad2))
-            //{
-            //    //Move backwards
-            //    cameraDescriptor.MoveBackward(moveSpeed);
-            //}
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad1))
-            //{
-            //    //Move left
-            //    cameraDescriptor.MoveLeft(moveSpeed);
-            //}
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad3))
-            //{
-            //    //Move right
-            //    cameraDescriptor.MoveRight(moveSpeed);
-            //}
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad7))
-            //{
-            //    //Move up
-            //    cameraDescriptor.MoveUp(moveSpeed);
-            //}
-            //if (primaryKeyboard.IsKeyPressed(Key.Keypad4))
-            //{
-            //    //Move down
-            //    cameraDescriptor.MoveDown(moveSpeed);
-            //}
-            var keyboard = inputContext.Keyboards[0];
-
-            if (keyboard.IsKeyPressed(Key.Left))
-            {
-                cameraDescriptor.MoveLeft();
             }
-            if (keyboard.IsKeyPressed(Key.Right))
+            if (primaryKeyboard.IsKeyPressed(Key.S))
             {
-                cameraDescriptor.MoveRight();
+                //Move backwards
+                cameraDescriptor.MoveBackward(moveSpeed);
             }
-            if (keyboard.IsKeyPressed(Key.Down))
+            if (primaryKeyboard.IsKeyPressed(Key.A))
             {
-                cameraDescriptor.MoveBack();
+                //Move left
+                cameraDescriptor.MoveLeft(moveSpeed);
             }
-            if (keyboard.IsKeyPressed(Key.Up))
+            if (primaryKeyboard.IsKeyPressed(Key.D))
             {
-                cameraDescriptor.MoveFront();
+                //Move right
+                cameraDescriptor.MoveRight(moveSpeed);
             }
-            if (keyboard.IsKeyPressed(Key.Q))
+            if (primaryKeyboard.IsKeyPressed(Key.Space))
             {
-                cameraDescriptor.GoUp();
+                //Move up
+                cameraDescriptor.MoveUp(moveSpeed);
             }
-            if (keyboard.IsKeyPressed(Key.E))
+            if (primaryKeyboard.IsKeyPressed(Key.ControlLeft))
             {
-                cameraDescriptor.GoDown();
+                //Move down
+                cameraDescriptor.MoveDown(moveSpeed);
             }
-            if (keyboard.IsKeyPressed(Key.A))
-            {
-                cameraDescriptor.Yaw -= 1.0f;
-            }
-            if (keyboard.IsKeyPressed(Key.D))
-            {
-                cameraDescriptor.Yaw += 1.0f;
-            }
-            if (keyboard.IsKeyPressed(Key.W))
-            {
-                cameraDescriptor.Pitch += 0.8f;
-                cameraDescriptor.Pitch = Math.Min(cameraDescriptor.Pitch, 89.9f); // korlat hogy ne forduljon at
-            }
-            if (keyboard.IsKeyPressed(Key.S))
-            {
-                cameraDescriptor.Pitch -= 0.8f;
-                cameraDescriptor.Pitch = Math.Max(cameraDescriptor.Pitch, -89.9f);
-            }
-
 
             controller.Update((float)deltaTime);
         }
@@ -435,7 +402,7 @@ namespace UNI_AIM
 
         private static unsafe void DrawSkyBox()
         {
-            Matrix4X4<float> modelMatrix = Matrix4X4.CreateScale(3500f);
+            Matrix4X4<float> modelMatrix = Matrix4X4.CreateScale(4000f);
             SetModelMatrix(modelMatrix);
             Gl.BindVertexArray(skyBox.Vao);
 
@@ -539,8 +506,8 @@ namespace UNI_AIM
 
         private static unsafe void SetViewMatrix()
         {
-            Matrix4X4<float> viewMatrix;
-            viewMatrix = Matrix4X4.CreateLookAt(cameraDescriptor.PositionInWorld, cameraDescriptor.TargetInWorld, cameraDescriptor.UpVector);
+            Matrix4X4<float> viewMatrix = cameraDescriptor.getView();
+            //viewMatrix = Matrix4X4.CreateLookAt(cameraDescriptor.PositionInWorld, cameraDescriptor.TargetInWorld, cameraDescriptor.UpVector);
             int location = Gl.GetUniformLocation(program, ViewMatrixVariableName);
 
             if (location == -1)
