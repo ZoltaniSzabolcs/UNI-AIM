@@ -1,0 +1,50 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <AllowUnsafeBlocks>True</AllowUnsafeBlocks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Resources\12248_Bird_v1_diff.jpg" />
+    <None Remove="Resources\12248_Bird_v1_L2.obj" />
+    <None Remove="Resources\12249_Bird_v1_diff.jpg" />
+    <None Remove="Resources\12249_Bird_v1_L2.obj" />
+    <None Remove="Resources\123456_wire_115115115_color.png" />
+    <None Remove="Resources\magnolia.obj" />
+    <None Remove="Resources\sky.png" />
+    <None Remove="Resources\skybox.png" />
+    <None Remove="Resources\sphere.obj" />
+    <None Remove="Resources\trumpet.obj" />
+    <None Remove="Resources\void.png" />
+    <None Remove="Resources\Çè-47.obj" />
+    <None Remove="Shaders\FragmentShader.frag" />
+    <None Remove="Shaders\VertexShader.vert" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\12248_Bird_v1_diff.jpg" />
+    <EmbeddedResource Include="Resources\12248_Bird_v1_L2.obj" />
+    <EmbeddedResource Include="Resources\12249_Bird_v1_diff.jpg" />
+    <EmbeddedResource Include="Resources\12249_Bird_v1_L2.obj" />
+    <EmbeddedResource Include="Resources\123456_wire_115115115_color.png" />
+    <EmbeddedResource Include="Resources\magnolia.obj" />
+    <EmbeddedResource Include="Resources\sky.png" />
+    <EmbeddedResource Include="Resources\skybox.png" />
+    <EmbeddedResource Include="Resources\sphere.obj" />
+    <EmbeddedResource Include="Resources\void.png" />
+    <EmbeddedResource Include="Resources\Çè-47.obj" />
+    <EmbeddedResource Include="Shaders\FragmentShader.frag" />
+    <EmbeddedResource Include="Shaders\VertexShader.vert" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Silk.NET" Version="2.21.0" />
+    <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.21.0" />
+    <PackageReference Include="StbImageSharp" Version="2.27.14" />
+  </ItemGroup>
+
+</Project>
