@@ -14,6 +14,9 @@
     <None Remove="Resources\12249_Bird_v1_diff.jpg" />
     <None Remove="Resources\12249_Bird_v1_L2.obj" />
     <None Remove="Resources\123456_wire_115115115_color.png" />
+    <None Remove="Resources\18364_Christianity-Cross_V1.obj" />
+    <None Remove="Resources\Blank image.jpg" />
+    <None Remove="Resources\golfball_lowpoly.obj" />
     <None Remove="Resources\magnolia.obj" />
     <None Remove="Resources\sky.png" />
     <None Remove="Resources\skybox.png" />
@@ -31,6 +34,9 @@
     <EmbeddedResource Include="Resources\12249_Bird_v1_diff.jpg" />
     <EmbeddedResource Include="Resources\12249_Bird_v1_L2.obj" />
     <EmbeddedResource Include="Resources\123456_wire_115115115_color.png" />
+    <EmbeddedResource Include="Resources\18364_Christianity-Cross_V1.obj" />
+    <EmbeddedResource Include="Resources\Blank image.jpg" />
+    <EmbeddedResource Include="Resources\golfball_lowpoly.obj" />
     <EmbeddedResource Include="Resources\magnolia.obj" />
     <EmbeddedResource Include="Resources\sky.png" />
     <EmbeddedResource Include="Resources\skybox.png" />

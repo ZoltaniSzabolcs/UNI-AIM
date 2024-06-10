@@ -1,5 +1,6 @@
 ﻿using Silk.NET.Maths;
 using Silk.NET.OpenGL;
+using Silk.NET.Vulkan;
 
 namespace UNI_AIM
 {
@@ -8,6 +9,10 @@ namespace UNI_AIM
         private static Vector3D<float> WeaponFront;
         public GlObjectWeapon(uint vao, uint vertices, uint colors, uint indeces, uint indexArrayLength, GL gl, uint texture = 0)
             : base(vao, vertices, colors, indeces, indexArrayLength, gl, texture)
+        {
+        }
+        public GlObjectWeapon(GlObject glObject, GL gl, uint texture = 0)
+            : base(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, gl, texture)
         {
         }
         private static float DegreesToRadians(float degrees)
@@ -30,6 +35,17 @@ namespace UNI_AIM
 
 
             this.ModelMatrix = RotationMatrix * lookAt * this.Scale * this.Translation;
+        }
+
+        public void CrosshairPlacement(Vector3D<float> targetPosition, Vector3D<float> targetFront, Vector3D<float> targetUp, float distance = 20f)
+        {
+            targetPosition = targetPosition + targetFront * distance;
+            this.Translation = Matrix4X4.CreateTranslation(targetPosition);
+            
+            Matrix4X4<float> lookAt;
+            Matrix4X4.Invert(Matrix4X4.CreateLookAt(targetPosition, targetPosition + targetFront, targetUp), out lookAt);
+
+            this.ModelMatrix = this.Scale * this.Translation;
         }
     }
 }

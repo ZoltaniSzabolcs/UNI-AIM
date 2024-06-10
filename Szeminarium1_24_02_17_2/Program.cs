@@ -5,6 +5,7 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Szeminarium1_24_02_17_2;
 
 /* Zoltani Szabolcs
  * 524/2
@@ -32,6 +33,14 @@ namespace UNI_AIM
         private static GlCube skyBox;
 
         private static GlObjectWeapon ak47;
+
+        private static GlObjectWeapon crosshair;
+
+        private static List<GlObjectProjectile> projectiles;
+
+        private static List<GlObjectTarget> targets;
+        private static List<Vector3D<float>> targetMoveSet;
+        private static List<Vector3D<float>> targetPositionSet;
 
         // imgui controller
         private static ImGuiController controller;
@@ -107,6 +116,7 @@ namespace UNI_AIM
             {
                 inputContext.Mice[i].Cursor.CursorMode = CursorMode.Raw;
                 inputContext.Mice[i].MouseMove += OnMouseMove;
+                inputContext.Mice[i].MouseDown += OnMouseDown;
                 inputContext.Mice[i].Scroll += OnMouseWheel;
             }
 
@@ -121,8 +131,13 @@ namespace UNI_AIM
 
             //Gl.Enable(EnableCap.CullFace);
 
+            projectiles = new List<GlObjectProjectile>() { };
+            targets = new List<GlObjectTarget>() { };
+
             Gl.Enable(EnableCap.DepthTest);
             Gl.DepthFunc(DepthFunction.Lequal);
+
+            InitTargets();
         }
 
         private static void LinkProgram()
@@ -152,6 +167,30 @@ namespace UNI_AIM
             Gl.DetachShader(program, fshader);
             Gl.DeleteShader(vshader);
             Gl.DeleteShader(fshader);
+        }
+
+        private static void InitTargets()
+        {
+            targetMoveSet = new List<Vector3D<float>>()
+            {
+                new Vector3D<float> (0.2f, 0f, 0f),
+                new Vector3D<float> (-0.2f, 0f, 0f),
+            };
+
+            targetPositionSet = new List<Vector3D<float>>()
+            {
+                new Vector3D<float> (-50f, -30f, -50f),
+                new Vector3D<float> (-25, 30f, -50f),
+                new Vector3D<float> (0f, -15f, -50f),
+                new Vector3D<float> (25f, 0f, -50f),
+                new Vector3D<float> (50f, 15f, -50f),
+            };
+
+            //foreach (var pos in targetPositionSet)
+            //{
+            //    GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
+            //    targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(30f), 0, 100000000));
+            //}
         }
         private static string ReadShader(string shaderFileName)
         {
@@ -188,6 +227,29 @@ namespace UNI_AIM
             //    cameraDescriptor.LookAtMouse(mouse, position);
             //}
             cameraDescriptor.LookAtMouse(mouse, position);
+        }
+
+        private static void OnMouseDown(IMouse mouse, MouseButton button)
+        {
+            if(projectiles.Count < 5)
+            {
+                Vector3D<float> velocity = cameraDescriptor.Front * 1f;
+                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
+                projectiles.Add(new GlObjectProjectile(
+                    glObject.Vao,
+                    glObject.Vertices,
+                    glObject.Colors,
+                    glObject.Indices,
+                    glObject.IndexArrayLength,
+                    Gl,
+                    cameraDescriptor.Position,
+                    velocity,
+                    Matrix4X4.CreateScale(0.1f)));
+            }
+            else
+            {
+                Console.WriteLine("No more projectile");
+            }
         }
 
         private static unsafe void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
@@ -239,6 +301,27 @@ namespace UNI_AIM
             }
 
             ak47.FollowCamera(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up, cameraDescriptor.Right);
+            crosshair.CrosshairPlacement(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up);
+
+            List<GlObjectProjectile> toRemove = new List<GlObjectProjectile>();
+            foreach(var projectile in projectiles)
+            {
+                if(projectile.Update() == true)
+                {
+                    toRemove.Add(projectile);
+                }
+            }
+            foreach(var projectile in toRemove)
+            {
+                projectile.ReleaseGlObject();
+                projectiles.Remove(projectile);
+                Console.WriteLine("Projectile removed");
+            }
+
+            //foreach(var target in targets)
+            //{
+            //    target.Update(deltaTime);
+            //}
 
             controller.Update((float)deltaTime);
         }
@@ -432,6 +515,18 @@ namespace UNI_AIM
         private static unsafe void DrawGLObjects()
         {
             ak47.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            CheckError();
+            crosshair.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            CheckError();
+            foreach(var projectile in projectiles)
+            {
+                projectile.Render(program, TextureUniformVariableName,ModelMatrixVariableName, NormalMatrixVariableName);
+            }
+            foreach(var target in targets)
+            {
+                target.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            }
+            CheckError();
             //pigeon2.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
         }
 
@@ -480,6 +575,15 @@ namespace UNI_AIM
             ak47.Scale = Matrix4X4.CreateScale(0.001f);
             ak47.RotationMatrix = (Matrix4X4<float>)Matrix4X4.CreateRotationY((float)Math.PI);
             //glObject.ReleaseGlObject();
+
+            //glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "18364_Christianity-Cross_V1.obj", "Blank_image.jpg");
+            //crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
+            //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "18364_Christianity-Cross_V1.obj");
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "golfball_lowpoly.obj");
+            crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
+            crosshair.Scale = Matrix4X4.CreateScale(0.2f);
+            crosshair.RotationMatrix = Matrix4X4.CreateRotationZ((float)Math.PI);
+            CheckError();
         }
 
         private static void Window_Closing()
@@ -491,6 +595,15 @@ namespace UNI_AIM
             //}
             skyBox.ReleaseGlObject();
             ak47.ReleaseGlObject();
+            crosshair.ReleaseGlObject();
+            foreach (var obj in projectiles)
+            {
+                obj.ReleaseGlObject();
+            }
+            foreach(var obj in targets)
+            {
+                obj.ReleaseGlObject();
+            }
             //pigeon2.ReleaseGlObject();
         }
         private static unsafe void SetProjectionMatrix()
