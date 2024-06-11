@@ -20,7 +20,7 @@ namespace UNI_AIM
         private static float CameraYaw = -90f;
         private static float CameraPitch = 0f;
         private static float CameraZoom = 45f;
-        private static float CameraMoveSpeed = 2.5f;
+        private static float CameraMoveSpeed = 50.5f;
         //Used to track change in mouse movement to allow for moving of the Camera
         private static Vector2 LastMousePosition;
         private static float CameraSlowerMoveSpeed = 50.5f;

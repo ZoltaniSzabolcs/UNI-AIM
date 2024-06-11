@@ -5,7 +5,6 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
-using Szeminarium1_24_02_17_2;
 
 /* Zoltani Szabolcs
  * 524/2
@@ -25,7 +24,7 @@ namespace UNI_AIM
         private static IInputContext input;
         private static IKeyboard primaryKeyboard;
 
-
+        private static Random random;
         private static GL Gl;
 
         private static uint program;
@@ -41,6 +40,12 @@ namespace UNI_AIM
         private static List<GlObjectTarget> targets;
         private static List<Vector3D<float>> targetMoveSet;
         private static List<Vector3D<float>> targetPositionSet;
+
+        private static float[] RedColor = {1.0f, 0.0f, 0.0f, 1.0f};
+        private static float[] GreenColor = {0.0f, 1.0f, 0.0f, 1.0f};
+        private static float[] BlueColor = {0.0f, 0.0f, 1.0f, 1.0f};
+        private static float[] WhiteColor = {1.0f, 1.0f, 1.0f, 1.0f};
+        private static float[] YellowColor = {1.0f, 1.0f, 0.0f, 1.0f};
 
         // imgui controller
         private static ImGuiController controller;
@@ -96,6 +101,7 @@ namespace UNI_AIM
 
         private static void Window_Load()
         {
+            random = new Random();
             //Console.WriteLine("Load");
 
             // set up input handling
@@ -171,26 +177,76 @@ namespace UNI_AIM
 
         private static void InitTargets()
         {
-            targetMoveSet = new List<Vector3D<float>>()
+            targetMoveSet = new List<Vector3D<float>>();
+            targetPositionSet = new List<Vector3D<float>>();
+            float speed = 0.1f;
+            Vector3D<float> spacing = new Vector3D<float>(75, 75, -50);
+            int moveCount = 3;
+            float[] moveBitsPlus = new float[moveCount];
+            float[] moveBitsMinus = new float[moveCount];
+            for(int i = 0; i < moveCount; i++)
             {
-                new Vector3D<float> (0.2f, 0f, 0f),
-                new Vector3D<float> (-0.2f, 0f, 0f),
-            };
-
-            targetPositionSet = new List<Vector3D<float>>()
+                moveBitsPlus[i] = (float)random.NextDouble() * speed + speed;
+                moveBitsMinus[i] = -moveBitsPlus[i];
+            }
+            for(int i = 0; i < moveCount; i++)
             {
-                new Vector3D<float> (-50f, -30f, -50f),
-                new Vector3D<float> (-25, 30f, -50f),
-                new Vector3D<float> (0f, -15f, -50f),
-                new Vector3D<float> (25f, 0f, -50f),
-                new Vector3D<float> (50f, 15f, -50f),
-            };
-
-            //foreach (var pos in targetPositionSet)
+                
+                targetMoveSet.Add(new Vector3D<float>(
+                    moveBitsPlus[i],
+                    0f,
+                    0f));
+                targetMoveSet.Add(new Vector3D<float>(
+                    moveBitsMinus[i],
+                    0f,
+                    0f));
+                targetMoveSet.Add(new Vector3D<float>(
+                    0f,
+                    moveBitsPlus[i],
+                    0f));
+                targetMoveSet.Add(new Vector3D<float>(
+                    0f,
+                    moveBitsMinus[i],
+                    0f));
+            }
+            targetMoveSet = targetMoveSet.OrderBy(x => Random.Shared.Next()).ToList();
+            for (int i = 0; i < 10; i++)
+            {
+                targetPositionSet.Add(new Vector3D<float>(
+                    (float)random.NextDouble() * spacing.X - spacing.X / 2.0f,
+                    (float)random.NextDouble() * spacing.Y - spacing.Y / 2.0f,
+                    spacing.Z));
+            }
+            //targetMoveSet = new List<Vector3D<float>>()
             //{
-            //    GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
-            //    targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(30f), 0, 100000000));
-            //}
+            //    //new Vector3D<float> (0.25f, 0f, 0f),
+            //    //new Vector3D<float> (0f, 0.25f, 0f),
+            //    //new Vector3D<float> (-0.25f, 0f, 0f),
+            //    //new Vector3D<float> (0f, -0.25f, 0f),
+            //    //new Vector3D<float> (-0.25f, 0f, 0f),
+            //    //new Vector3D<float> (0f, +0.25f, 0f),
+            //    //new Vector3D<float> (0.25f, 0f, 0f),
+            //};
+
+
+
+            //targetPositionSet = new List<Vector3D<float>>()
+            //{
+            //    new Vector3D<float> (5f, 5f, -50f),
+            //    new Vector3D<float> (-25f, 30f, -50f),
+            //    new Vector3D<float> (-10f, 30f, -50f),
+            //    new Vector3D<float> (0f, -15f, -50f),
+            //    new Vector3D<float> (25f, 0f, -50f),
+            //    new Vector3D<float> (10f, -30f, -50f),
+            //};
+
+            float hitboxRadius = 6f;
+            foreach (var pos in targetPositionSet)
+            {
+                Console.WriteLine(pos);
+                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
+                targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(10f), random.NextDouble() * 2, (int)random.Next(targetMoveSet.Count), false, hitboxRadius));
+            }
         }
         private static string ReadShader(string shaderFileName)
         {
@@ -233,8 +289,8 @@ namespace UNI_AIM
         {
             if(projectiles.Count < 5)
             {
-                Vector3D<float> velocity = cameraDescriptor.Front * 1f;
-                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
+                Vector3D<float> velocity = cameraDescriptor.Front * 5f;
+                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", YellowColor);
                 projectiles.Add(new GlObjectProjectile(
                     glObject.Vao,
                     glObject.Vertices,
@@ -303,25 +359,70 @@ namespace UNI_AIM
             ak47.FollowCamera(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up, cameraDescriptor.Right);
             crosshair.CrosshairPlacement(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up);
 
-            List<GlObjectProjectile> toRemove = new List<GlObjectProjectile>();
+            List<GlObjectProjectile> toRemoveProjectile = new List<GlObjectProjectile>();
             foreach(var projectile in projectiles)
             {
                 if(projectile.Update() == true)
                 {
-                    toRemove.Add(projectile);
+                    toRemoveProjectile.Add(projectile);
+                }
+                foreach(var target in targets)
+                {
+                    if(projectile.CheckTargetCollision(target) == true)
+                    {
+                        Console.WriteLine("Shot hit");
+                        target.Shot();
+                    }
                 }
             }
-            foreach(var projectile in toRemove)
+            foreach(var projectile in toRemoveProjectile)
             {
                 projectile.ReleaseGlObject();
                 projectiles.Remove(projectile);
-                Console.WriteLine("Projectile removed");
+                //Console.WriteLine("Projectile removed");
+            }
+            toRemoveProjectile.Clear();
+            List<GlObjectTarget> toRemove = new List<GlObjectTarget>();
+            foreach (var target in targets)
+            {
+                if(target.Update(deltaTime) == true)
+                {
+                    Console.WriteLine("Dead");
+                    toRemove.Add(target);
+                }
             }
 
-            //foreach(var target in targets)
-            //{
-            //    target.Update(deltaTime);
-            //}
+            foreach(var targetToRemove in toRemove)
+            {
+                targetToRemove.ReleaseGlObject();
+                targets.Remove(targetToRemove);
+            }
+            toRemove.Clear();
+
+            foreach (var target in targets)
+            {
+                if(target.isShot() == true)
+                {
+                    toRemove.Add(target);
+                }
+            }
+            foreach(var target in toRemove)
+            {
+
+                target.ReleaseGlObject();
+                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", RedColor);
+                targets.Add(new GlObjectTarget(
+                    glObject,
+                    Gl,
+                    target.getPosition(),
+                    target.getMovement(),
+                    target.Scale,
+                    2,
+                    0,
+                    true,
+                    target.getHitboxRadius()));
+                targets.Remove(target);
+            }
 
             controller.Update((float)deltaTime);
         }
@@ -579,9 +680,10 @@ namespace UNI_AIM
             //glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "18364_Christianity-Cross_V1.obj", "Blank_image.jpg");
             //crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
             //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "18364_Christianity-Cross_V1.obj");
-            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "golfball_lowpoly.obj");
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "golfball_lowpoly.obj", RedColor);
+            //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
             crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
-            crosshair.Scale = Matrix4X4.CreateScale(0.2f);
+            crosshair.Scale = Matrix4X4.CreateScale(0.001f);
             crosshair.RotationMatrix = Matrix4X4.CreateRotationZ((float)Math.PI);
             CheckError();
         }

@@ -1,72 +1,92 @@
 ﻿using Silk.NET.Maths;
 using Silk.NET.OpenGL;
-using Silk.NET.SDL;
-using Silk.NET.Vulkan;
 
 namespace UNI_AIM
 {
     internal class GlObjectTarget : GlObject
     {
-        private readonly Vector3D<float> PlayerPosition;
         private Vector3D<float> Position;
         private Vector3D<float> Velocity;
         private int iMovement;
         private readonly List<Vector3D<float>> Movement;
-        private double deltaTime;
+        private double Time;
         private readonly double timeToChange;
+        private float hitboxRadius;
+        private bool shot;
+        private bool dead;
         public GlObjectTarget(uint vao, uint vertices, uint colors, uint indeces, uint indexArrayLength,
             GL gl, Vector3D<float> Position, List<Vector3D<float>> Movement, Matrix4X4<float> Scale,
-            double deltaTime, double timeToChange, uint texture = 0)
+            double timeToChange, int iMovement, bool dead, float hitboxRadius, uint texture = 0)
             : base(vao, vertices, colors, indeces, indexArrayLength, gl, texture)
         {
             this.Position = Position;
             this.Scale = Scale;
             this.Movement = Movement;
-            this.deltaTime = deltaTime;
+            this.Time = 0;
             this.timeToChange = timeToChange;
-            this.iMovement = 0;
+            this.iMovement = iMovement;
             this.Velocity = Movement[iMovement];
+            this.shot = false;
+            this.dead = dead;
+            this.hitboxRadius = hitboxRadius;
+            this.Translation = Matrix4X4.CreateTranslation(Position);
+            this.ModelMatrix = Scale * Translation;
         }
 
         public GlObjectTarget(GlObject glObject, GL gl, Vector3D<float> Position, List<Vector3D<float>> Movement, Matrix4X4<float> Scale,
-             double timeToChange, uint texture = 0)
+             double timeToChange, int iMovement, bool dead, float hitboxRadius, uint texture = 0)
             : base(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, gl, texture)
         {
             this.Position = Position;
             this.Scale = Scale;
             this.Movement = Movement;
             this.timeToChange = timeToChange;
-            this.deltaTime = 0;
-            this.iMovement = 0;
+            this.Time = 0;
+            this.iMovement = iMovement;
             this.Velocity = Movement[iMovement];
+            this.shot = false;
+            this.dead = dead;
+            this.hitboxRadius = hitboxRadius;
+            this.Translation = Matrix4X4.CreateTranslation(Position);
+            this.ModelMatrix = Scale * Translation;
         }
+
+        public List<Vector3D<float>> getMovement() { return this.Movement; }
 
         public bool Update(double deltaTime)
         {
-            //this.deltaTime += deltaTime;
-            //Console.Write(this.deltaTime);
-            //if(this.deltaTime > timeToChange)
-            //{
-            //    Velocity = Movement[iMovement];
-            //    iMovement = iMovement + 1;
-            //    this.deltaTime = 0;
-            //}
-            //iMovement = iMovement % Movement.Count;
-            Position = Position + Velocity;
-            Translation = Matrix4X4.CreateTranslation(Position);
+            this.Time += deltaTime;
+            if (this.shot) { return false; }
+            if (this.dead && this.Time > timeToChange) { return true; }
+            if (this.dead) {  return false; }
+            if (this.Time > timeToChange)
+            {
+                //Console.WriteLine(this.Time);
+                iMovement = (iMovement + 1) % Movement.Count;
+                Velocity = Movement[iMovement];
+                this.Time = 0;
+            }
+            this.Position = this.Position + this.Velocity;
+            this.Translation = Matrix4X4.CreateTranslation(Position);
             UpdateModelMatrix();
-            //if (Vector3D.Distance(PlayerPosition, Position) > 100f)
-            //{
-            //    Console.WriteLine("Bullet destroyed");
-            //    this.ReleaseGlObject();
-            //    return true;
-            //}
             return false;
         }
 
+        public void Shot()
+        {
+            this.shot = true;
+        }
+
+        public float getHitboxRadius() {  return this.hitboxRadius; }
+        public Vector3D<float> getPosition() { return this.Position; }
+
+        public bool isShot() {  return this.shot; }
+        //public bool isDead() { return this.dead; }
         private void UpdateModelMatrix()
         {
-            this.ModelMatrix = Scale * Translation;
+            //Matrix4X4<float> currentTranslation = Matrix4X4.CreateTranslation(-Position.X, Position.Y, -Position.Z);
+            //this.ModelMatrix = this.Scale * currentTranslation;
+            this.ModelMatrix = this.Scale * this.Translation;
         }
         private static float DegreesToRadians(float degrees)
         {

@@ -37,7 +37,7 @@ namespace UNI_AIM
             this.ModelMatrix = RotationMatrix * lookAt * this.Scale * this.Translation;
         }
 
-        public void CrosshairPlacement(Vector3D<float> targetPosition, Vector3D<float> targetFront, Vector3D<float> targetUp, float distance = 20f)
+        public void CrosshairPlacement(Vector3D<float> targetPosition, Vector3D<float> targetFront, Vector3D<float> targetUp, float distance = 0.08f)
         {
             targetPosition = targetPosition + targetFront * distance;
             this.Translation = Matrix4X4.CreateTranslation(targetPosition);

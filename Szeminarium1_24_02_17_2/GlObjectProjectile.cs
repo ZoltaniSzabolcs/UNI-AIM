@@ -30,7 +30,7 @@ namespace UNI_AIM
             Position = Position + Velocity;
             Translation = Matrix4X4.CreateTranslation(Position);
             UpdateModelMatrix();
-            if (Vector3D.Distance(PlayerPosition, Position) > 100f)
+            if (Vector3D.Distance(PlayerPosition, Position) > 150f)
             {
                 Console.WriteLine("Bullet destroyed");
                 this.ReleaseGlObject();
@@ -42,6 +42,21 @@ namespace UNI_AIM
         private void UpdateModelMatrix()
         {
             this.ModelMatrix = Scale * Translation;
+        }
+
+        public bool CheckTargetCollision(GlObjectTarget target)
+        {
+            Vector3D<float> targetPosition = target.getPosition();
+            //targetPosition.X = -targetPosition.X;
+            //if(Vector3D.Distance(target.getPosition(), new Vector3D<float>(Position.X, Position.Y, Position.Z)) < target.getHitboxRadius())
+            if(Vector3D.Distance(target.getPosition(), Position) < target.getHitboxRadius())
+            {
+                //Console.WriteLine(targetPosition + " " + Vector3D.Distance(target.getPosition(), this.Position) + " " + this.Position);
+                return true;
+            }
+            //Console.WriteLine(targetPosition + " " + Vector3D.Distance(target.getPosition(), this.Position) + " " + this.Position);
+
+            return false;
         }
     }
 }

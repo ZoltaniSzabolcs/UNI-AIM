@@ -46,8 +46,12 @@ namespace UNI_AIM
         private static bool voltTextura = false;
         private static bool voltNormalis = false;
         private static int osszesFaceDrb = 0;
-        public static unsafe GlObject CreateObjectFromResource(GL Gl, string resourceName)
+        public static unsafe GlObject CreateObjectFromResource(GL Gl, string resourceName, float[]? paintItColor = null)
         {
+            if (paintItColor == null)
+            {
+                paintItColor = new float[4] { 1.0f, 0.0f, 0.0f, 1.0f };
+            }
             List<float[]> objVertices = new List<float[]>();
             List<int[]> objFaces = new List<int[]>();
             List<float[]> objNormalVectors = new List<float[]>();
@@ -151,7 +155,7 @@ namespace UNI_AIM
                 //glVertices.Add(vertexTransformation.TextureCoords.X);  // u  koordinatak igazabol
                 //glVertices.Add(vertexTransformation.TextureCoords.Y);  // v
 
-                glColors.AddRange([1.0f, 0.0f, 0.0f, 1.0f]);
+                glColors.AddRange(paintItColor);
             }
 
             List<uint> glIndexArray = new List<uint>();
