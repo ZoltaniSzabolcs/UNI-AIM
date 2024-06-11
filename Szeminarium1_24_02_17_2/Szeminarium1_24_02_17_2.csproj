@@ -20,6 +20,7 @@
     <None Remove="Resources\magnolia.obj" />
     <None Remove="Resources\sky.png" />
     <None Remove="Resources\skybox.png" />
+    <None Remove="Resources\Sound\ak-47_shot.mp3" />
     <None Remove="Resources\sphere.obj" />
     <None Remove="Resources\trumpet.obj" />
     <None Remove="Resources\void.png" />
@@ -40,6 +41,7 @@
     <EmbeddedResource Include="Resources\magnolia.obj" />
     <EmbeddedResource Include="Resources\sky.png" />
     <EmbeddedResource Include="Resources\skybox.png" />
+    <EmbeddedResource Include="Resources\Sound\ak-47_shot.mp3" />
     <EmbeddedResource Include="Resources\sphere.obj" />
     <EmbeddedResource Include="Resources\void.png" />
     <EmbeddedResource Include="Resources\Çè-47.obj" />
@@ -48,6 +50,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="Silk.NET" Version="2.21.0" />
     <PackageReference Include="Silk.NET.OpenGL.Extensions.ImGui" Version="2.21.0" />
     <PackageReference Include="StbImageSharp" Version="2.27.14" />

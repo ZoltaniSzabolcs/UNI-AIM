@@ -30,9 +30,8 @@ namespace UNI_AIM
             Position = Position + Velocity;
             Translation = Matrix4X4.CreateTranslation(Position);
             UpdateModelMatrix();
-            if (Vector3D.Distance(PlayerPosition, Position) > 150f)
+            if (Vector3D.Distance(PlayerPosition, Position) > 250f)
             {
-                Console.WriteLine("Bullet destroyed");
                 this.ReleaseGlObject();
                 return true;
             }

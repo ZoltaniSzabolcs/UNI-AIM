@@ -1,6 +1,8 @@
 ﻿using System.Numerics;
+using System.Reflection.PortableExecutable;
+using System.Reflection;
 using ImGuiNET;
-using Silk.NET.Core;
+using NAudio.Wave;
 using Silk.NET.Input;
 using Silk.NET.Maths;
 using Silk.NET.OpenGL;
@@ -16,7 +18,7 @@ namespace UNI_AIM
 {
     internal static class Program
     {
-        private static CameraDescriptor cameraDescriptor = new();
+        private static CameraDescriptor cameraDescriptor = new CameraDescriptor();
         //private static CameraDescriptor cameraDescriptor = new CameraDescriptor(new Vector3D<float>(0f, 0f, 20f));
 
         private static CubeArrangementModel cubeArrangementModel = new();
@@ -24,6 +26,10 @@ namespace UNI_AIM
         private static IWindow window;
         private static IInputContext input;
         private static IKeyboard primaryKeyboard;
+
+        private static WaveOutEvent waveOut;
+        private static Mp3FileReader mp3FileReader;
+        private static Stream audioStream;
 
         private static Random random;
         private static GL Gl;
@@ -34,7 +40,8 @@ namespace UNI_AIM
 
         private static GlObjectWeapon ak47;
         private static GlObjectWeapon crosshair;
-        private static bool isFiring = false;
+        private static bool weaponHolstered;
+        private static bool silentMode;
 
         private static List<GlObjectButton> buttons;
         private static GlObjectButton resetTargetButton;
@@ -46,14 +53,14 @@ namespace UNI_AIM
         private static List<Vector3D<float>> targetMoveSet;
         private static List<Vector3D<float>> targetPositionSet;
 
-        private static float[] RedColor = {1.0f, 0.0f, 0.0f, 1.0f};
-        private static float[] RedColor75 = {1.0f, 0.23f, 0.23f, 1.0f};
-        private static float[] GreenColor = {0.0f, 1.0f, 0.0f, 1.0f};
-        private static float[] GreenColor50 = {0.46f, 0.94f, 0.46f, 1.0f};
-        private static float[] BlueColor = {0.0f, 0.0f, 1.0f, 1.0f};
-        private static float[] BlueColor50 = {0.23f, 0.65f, 1.0f, 1.0f};
-        private static float[] WhiteColor = {1.0f, 1.0f, 1.0f, 1.0f};
-        private static float[] YellowColor = {1.0f, 1.0f, 0.0f, 1.0f};
+        private static float[] RedColor = { 1.0f, 0.0f, 0.0f, 1.0f };
+        private static float[] RedColor75 = { 1.0f, 0.23f, 0.23f, 1.0f };
+        private static float[] GreenColor = { 0.0f, 1.0f, 0.0f, 1.0f };
+        private static float[] GreenColor50 = { 0.46f, 0.94f, 0.46f, 1.0f };
+        private static float[] BlueColor = { 0.0f, 0.0f, 1.0f, 1.0f };
+        private static float[] BlueColor50 = { 0.23f, 0.65f, 1.0f, 1.0f };
+        private static float[] WhiteColor = { 1.0f, 1.0f, 1.0f, 1.0f };
+        private static float[] YellowColor = { 1.0f, 1.0f, 0.0f, 1.0f };
 
         // imgui controller
         private static ImGuiController controller;
@@ -110,13 +117,14 @@ namespace UNI_AIM
         private static void Window_Load()
         {
             random = new Random();
+            weaponHolstered = false;
             //Console.WriteLine("Load");
 
             // set up input handling
             inputContext = window.CreateInput();
             foreach (var keyboard in inputContext.Keyboards)
             {
-                keyboard.KeyDown += Keyboard_KeyDown;
+                //keyboard.KeyDown += Keyboard_KeyDown;
                 primaryKeyboard = keyboard;
             }
             Console.WriteLine($"Keyboard count: {inputContext.Keyboards.Count} \nIf the keyboard is not working try unplugging some");
@@ -192,14 +200,14 @@ namespace UNI_AIM
             int moveCount = 5;
             float[] moveBitsPlus = new float[moveCount];
             float[] moveBitsMinus = new float[moveCount];
-            for(int i = 0; i < moveCount; i++)
+            for (int i = 0; i < moveCount; i++)
             {
                 moveBitsPlus[i] = (float)random.NextDouble() * speed + speed;
                 moveBitsMinus[i] = -moveBitsPlus[i];
             }
-            for(int i = 0; i < moveCount; i++)
+            for (int i = 0; i < moveCount; i++)
             {
-                
+
                 targetMoveSet.Add(new Vector3D<float>(
                     moveBitsPlus[i],
                     0f,
@@ -229,7 +237,6 @@ namespace UNI_AIM
             float hitboxRadius = 6f;
             foreach (var pos in targetPositionSet)
             {
-                Console.WriteLine(pos);
                 GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
                 targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(10f), random.NextDouble() * 2, (int)random.Next(targetMoveSet.Count), false, hitboxRadius));
             }
@@ -244,18 +251,23 @@ namespace UNI_AIM
         }
         private static void Keyboard_KeyDown(IKeyboard keyboard, Key key, int arg3)
         {
-            //Console.WriteLine("Key pressed");
             switch (key)
             {
                 case Key.ShiftLeft:
                     cameraDescriptor.MoveFaster();
+                    break;
+                case Key.Q:
+                    weaponHolstered = !weaponHolstered;
+                    silentMode = weaponHolstered;
+                    break;
+                case Key.E:
+                    silentMode = !silentMode;
                     break;
             }
         }
 
         private static void Keyboard_KeyUp(IKeyboard keyboard, Key key, int arg3)
         {
-            //Console.WriteLine("Key released");
             switch (key)
             {
                 case Key.ShiftLeft:
@@ -275,8 +287,16 @@ namespace UNI_AIM
 
         private static void OnMouseDown(IMouse mouse, MouseButton button)
         {
-            isFiring = true;
-            if(projectiles.Count < 5)
+            if(weaponHolstered == false)
+            {
+                cameraDescriptor.Bump();
+            }
+            if(silentMode == false)
+            {
+                Thread weaponSoundThread = new Thread(new ParameterizedThreadStart(PlayMp3File));
+                weaponSoundThread.Start("Szeminarium1_24_02_17_2.Resources.Sound.ak-47_shot.mp3");
+            }
+            if (projectiles.Count < 5)
             {
                 Vector3D<float> velocity = cameraDescriptor.Front * 5f;
                 GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", YellowColor);
@@ -295,7 +315,6 @@ namespace UNI_AIM
             {
                 Console.WriteLine("No more projectile");
             }
-            isFiring = false;
         }
 
         private static unsafe void OnMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
@@ -311,8 +330,9 @@ namespace UNI_AIM
             // NO GL calls
 
             cubeArrangementModel.AdvanceTime(deltaTime);
+            cameraDescriptor.Update(deltaTime);
 
-            float moveSpeed =(float)deltaTime;
+            float moveSpeed = (float)deltaTime;
 
             if (primaryKeyboard.IsKeyPressed(Key.W))
             {
@@ -350,33 +370,31 @@ namespace UNI_AIM
             crosshair.CrosshairPlacement(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up);
 
             List<GlObjectProjectile> toRemoveProjectile = new List<GlObjectProjectile>();
-            foreach(var projectile in projectiles)
+            foreach (var projectile in projectiles)
             {
-                if(projectile.Update() == true)
+                if (projectile.Update() == true)
                 {
                     toRemoveProjectile.Add(projectile);
                 }
-                foreach(var target in targets)
+                foreach (var target in targets)
                 {
-                    if(projectile.CheckTargetCollision(target) == true)
+                    if (projectile.CheckTargetCollision(target) == true)
                     {
-                        Console.WriteLine("Shot hit");
                         target.Shot();
                     }
                 }
-                foreach(var button in buttons)
+                foreach (var button in buttons)
                 {
-                    if(projectile.CheckButtonCollision(button) == true)
+                    if (projectile.CheckButtonCollision(button) == true)
                     {
                         HandleButtonPressed(button.getName());
                     }
                 }
             }
-            foreach(var projectile in toRemoveProjectile)
+            foreach (var projectile in toRemoveProjectile)
             {
                 projectile.ReleaseGlObject();
                 projectiles.Remove(projectile);
-                //Console.WriteLine("Projectile removed");
             }
             toRemoveProjectile.Clear();
 
@@ -384,14 +402,13 @@ namespace UNI_AIM
             List<GlObjectTarget> toRemove = new List<GlObjectTarget>();
             foreach (var target in targets)
             {
-                if(target.Update(deltaTime) == true)
+                if (target.Update(deltaTime) == true)
                 {
-                    Console.WriteLine("Dead");
                     toRemove.Add(target);
                 }
             }
 
-            foreach(var targetToRemove in toRemove)
+            foreach (var targetToRemove in toRemove)
             {
                 targetToRemove.ReleaseGlObject();
                 targets.Remove(targetToRemove);
@@ -400,12 +417,12 @@ namespace UNI_AIM
 
             foreach (var target in targets)
             {
-                if(target.isShot() == true)
+                if (target.isShot() == true)
                 {
                     toRemove.Add(target);
                 }
             }
-            foreach(var target in toRemove)
+            foreach (var target in toRemove)
             {
 
                 target.ReleaseGlObject();
@@ -431,18 +448,13 @@ namespace UNI_AIM
             switch (buttonName)
             {
                 case "resetButton":
-                    if(targets.Count == 0)
+                    if (targets.Count == 0)
                     {
                         InitTargets();
                     }
-                    else
-                    {
-                        Console.WriteLine("Cannot reset. There are targets yet.");
-                    }
                     break;
                 case "deleteButton":
-                    Console.WriteLine("Deleting");
-                    foreach(var target in targets)
+                    foreach (var target in targets)
                     {
                         target.ReleaseGlObject();
                     }
@@ -639,15 +651,16 @@ namespace UNI_AIM
 
         private static unsafe void DrawGLObjects()
         {
-            ak47.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
-            CheckError();
-            crosshair.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
-            CheckError();
-            foreach(var projectile in projectiles)
+            if(weaponHolstered == false)
             {
-                projectile.Render(program, TextureUniformVariableName,ModelMatrixVariableName, NormalMatrixVariableName);
+                ak47.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
             }
-            foreach(var target in targets)
+            crosshair.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            foreach (var projectile in projectiles)
+            {
+                projectile.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
+            }
+            foreach (var target in targets)
             {
                 target.Render(program, TextureUniformVariableName, ModelMatrixVariableName, NormalMatrixVariableName);
             }
@@ -735,14 +748,15 @@ namespace UNI_AIM
             {
                 obj.ReleaseGlObject();
             }
-            foreach(var obj in targets)
+            foreach (var obj in targets)
             {
                 obj.ReleaseGlObject();
             }
-            foreach(var obj in buttons)
+            foreach (var obj in buttons)
             {
                 obj.ReleaseGlObject();
             }
+            AudioDispose();
             //pigeon2.ReleaseGlObject();
         }
         private static unsafe void SetProjectionMatrix()
@@ -772,6 +786,82 @@ namespace UNI_AIM
 
             Gl.UniformMatrix4(location, 1, false, (float*)&viewMatrix);
             CheckError();
+        }
+
+        private static void PlayMp3File(object FilePath)
+        {
+            string resourceName = (string)FilePath;
+            Assembly currentAssembly = Assembly.GetExecutingAssembly();
+
+            using (Stream resourceStream = currentAssembly.GetManifestResourceStream(resourceName))
+            {
+                if (resourceStream == null)
+                {
+                    Console.WriteLine("Resource not found: " + resourceName);
+                    return;
+                }
+
+                // Itt használhatod az NAudio könyvtárat a stream lejátszására
+                using (var mp3Reader = new Mp3FileReader(resourceStream))
+                using (var waveOut = new WaveOutEvent())
+                {
+                    waveOut.Init(mp3Reader);
+                    waveOut.Play();
+                    while (waveOut.PlaybackState == PlaybackState.Playing)
+                    {
+                        System.Threading.Thread.Sleep(1000);
+                    }
+                }
+            }
+        }
+
+        private static void AudioManager(string resourceName)
+        {
+            Assembly currentAssembly = Assembly.GetExecutingAssembly();
+            audioStream = currentAssembly.GetManifestResourceStream(resourceName);
+
+            if (audioStream == null)
+            {
+                Console.WriteLine("Resource not found: " + resourceName);
+                return;
+            }
+            InitializePlayer();
+        }
+
+        private static void InitializePlayer()
+        {
+            if (mp3FileReader != null) mp3FileReader.Dispose();
+            if (waveOut != null) waveOut.Dispose();
+
+            audioStream.Position = 0; // Reset the stream position to the beginning
+            mp3FileReader = new Mp3FileReader(audioStream);
+            waveOut = new WaveOutEvent();
+            waveOut.Init(mp3FileReader);
+        }
+
+        private static void Play()
+        {
+            if (waveOut != null && waveOut.PlaybackState != PlaybackState.Playing)
+            {
+                waveOut.Play();
+                //Console.WriteLine("Playback started...");
+            }
+        }
+
+        private static void Stop()
+        {
+            if (waveOut != null && waveOut.PlaybackState != PlaybackState.Stopped)
+            {
+                waveOut.Stop();
+                //Console.WriteLine("Playback stopped.");
+            }
+        }
+
+        private static void AudioDispose()
+        {
+            mp3FileReader?.Dispose();
+            waveOut?.Dispose();
+            audioStream?.Dispose();
         }
 
         public static void CheckError()

@@ -6,7 +6,6 @@ namespace UNI_AIM
 {
     internal class GlObjectWeapon : GlObject
     {
-        private static Vector3D<float> WeaponFront;
         public GlObjectWeapon(uint vao, uint vertices, uint colors, uint indeces, uint indexArrayLength, GL gl, uint texture = 0)
             : base(vao, vertices, colors, indeces, indexArrayLength, gl, texture)
         {

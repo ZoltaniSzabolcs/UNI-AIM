@@ -1,6 +1,7 @@
 ﻿using System.Numerics;
 using Silk.NET.Input;
 using Silk.NET.Maths;
+using Silk.NET.Vulkan;
 
 /* Zoltani Szabolcs
  * 524/2
@@ -25,7 +26,61 @@ namespace UNI_AIM
         private static Vector2 LastMousePosition;
         private static float CameraSlowerMoveSpeed = 50.5f;
         private static float CameraFasterMoveSpeed = 100.5f;
+        
+        private static List<int> firingAnimationi;
+        private static List<float> bumpUp;
+        private static double Time;
+        private static double TimeToChange;
 
+        public CameraDescriptor()
+        {
+            int count = 25;
+            firingAnimationi = new List<int>();
+            bumpUp = new List<float>();
+            for (int i = 0; i < count; i++)
+            {
+                bumpUp.Add(0.70f * (float)Math.Sin(1.3 * Math.PI * ((float)i / (float)count)));
+            }
+            Time = 0;
+            TimeToChange = 0.0001;
+        }
+
+        public void Update(double deltaTime)
+        {
+            if(firingAnimationi.Count == 0) { return; }
+            Time += deltaTime;
+            if(Time > TimeToChange)
+            {
+                for(int i = 0; i < firingAnimationi.Count; i++)
+                {
+                    CameraPitch += bumpUp[firingAnimationi[i]++];
+                    if (firingAnimationi[i] > bumpUp.Count - 1)
+                    {
+                        firingAnimationi.RemoveAt(i);
+                        i--;
+                    }
+                }
+                Time = 0;
+            }
+            CalculateCameraAngles();
+        }
+
+        public void Bump()
+        {
+            firingAnimationi.Add(0);
+        }
+
+        private static void CalculateCameraAngles()
+        {
+            //We don't want to be able to look behind us by going over our head or under our feet so make sure it stays within these bounds
+            CameraPitch = Math.Clamp(CameraPitch, -89.0f, 89.0f);
+
+            CameraDirection.X = MathF.Cos(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
+            CameraDirection.Y = MathF.Sin(DegreesToRadians(CameraPitch));
+            CameraDirection.Z = MathF.Sin(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
+            CameraFront = Vector3D.Normalize(CameraDirection);
+            CameraRight = Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp));
+        }
 
         private static float DegreesToRadians(float degrees)
         {
@@ -43,15 +98,8 @@ namespace UNI_AIM
 
                 CameraYaw += xOffset;
                 CameraPitch -= yOffset;
-
-                //We don't want to be able to look behind us by going over our head or under our feet so make sure it stays within these bounds
-                CameraPitch = Math.Clamp(CameraPitch, -89.0f, 89.0f);
-
-                CameraDirection.X = MathF.Cos(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
-                CameraDirection.Y = MathF.Sin(DegreesToRadians(CameraPitch));
-                CameraDirection.Z = MathF.Sin(DegreesToRadians(CameraYaw)) * MathF.Cos(DegreesToRadians(CameraPitch));
-                CameraFront = Vector3D.Normalize(CameraDirection);
-                CameraRight = Vector3D.Normalize(Vector3D.Cross(CameraFront, CameraUp));
+                //Console.WriteLine(CameraYaw + " " + CameraPitch);
+                CalculateCameraAngles();
             }
         }
         public unsafe void ZoomMouseWheel(IMouse mouse, ScrollWheel scrollWheel)
@@ -80,6 +128,11 @@ namespace UNI_AIM
         public float getCameraPitch()
         {
             return CameraPitch;
+        }
+
+        public void setCameraPitch(float newCameraPitch)
+        {
+            CameraPitch = newCameraPitch;
         }
         public void MoveUp(float moveSpeed)
         {
