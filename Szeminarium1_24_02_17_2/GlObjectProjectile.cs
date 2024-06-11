@@ -46,10 +46,22 @@ namespace UNI_AIM
 
         public bool CheckTargetCollision(GlObjectTarget target)
         {
-            Vector3D<float> targetPosition = target.getPosition();
+            //Vector3D<float> targetPosition = target.getPosition();
             //targetPosition.X = -targetPosition.X;
             //if(Vector3D.Distance(target.getPosition(), new Vector3D<float>(Position.X, Position.Y, Position.Z)) < target.getHitboxRadius())
             if(Vector3D.Distance(target.getPosition(), Position) < target.getHitboxRadius())
+            {
+                //Console.WriteLine(targetPosition + " " + Vector3D.Distance(target.getPosition(), this.Position) + " " + this.Position);
+                return true;
+            }
+            //Console.WriteLine(targetPosition + " " + Vector3D.Distance(target.getPosition(), this.Position) + " " + this.Position);
+
+            return false;
+        }
+
+        public bool CheckButtonCollision(GlObjectButton button)
+        {
+            if (Vector3D.Distance(button.getPosition(), Position) < button.getHitboxRadius())
             {
                 //Console.WriteLine(targetPosition + " " + Vector3D.Distance(target.getPosition(), this.Position) + " " + this.Position);
                 return true;
