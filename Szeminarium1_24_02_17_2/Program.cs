@@ -19,9 +19,8 @@ namespace UNI_AIM
     internal static class Program
     {
         private static CameraDescriptor cameraDescriptor = new CameraDescriptor();
+        private static int fov;
         //private static CameraDescriptor cameraDescriptor = new CameraDescriptor(new Vector3D<float>(0f, 0f, 20f));
-
-        private static CubeArrangementModel cubeArrangementModel = new();
 
         private static IWindow window;
         private static IInputContext input;
@@ -43,12 +42,19 @@ namespace UNI_AIM
         private static bool weaponHolstered;
         private static bool silentMode;
         private static bool endless;
+        private static bool started;
+        private static bool ducks;
 
         private static List<GlObjectButton> buttons;
         private static GlObjectButton resetTargetButton;
         private static GlObjectButton deleteTargetButton;
         private static GlObjectButton endlessTargetButton;
-        private static int targetCount = 5;
+        private static GlObjectButton plusTargetButton;
+        private static GlObjectButton minusTargetButton;
+        private static GlObjectButton plusFovButton;
+        private static GlObjectButton minusFovButton;
+        //private static GlObjectButton ducksButton;
+        private static int targetCount = 1;
 
         private static List<GlObjectProjectile> projectiles;
 
@@ -120,11 +126,14 @@ namespace UNI_AIM
 
         private static void Window_Load()
         {
-            targetMoveSet = new List<Vector3D<float>>();
             targetPositionSet = new List<Vector3D<float>>();
+            //targetMoveSet = new List<Vector3D<float>>();
             endless = false;
-            random = new Random();
+            started = false;
             weaponHolstered = false;
+            ducks = false;
+            fov = 80;
+            random = new Random();
             //Console.WriteLine("Load");
 
             // set up input handling
@@ -165,8 +174,6 @@ namespace UNI_AIM
 
             Gl.Enable(EnableCap.DepthTest);
             Gl.DepthFunc(DepthFunction.Lequal);
-
-            //InitTargets();
         }
 
         private static void LinkProgram()
@@ -197,7 +204,6 @@ namespace UNI_AIM
             Gl.DeleteShader(vshader);
             Gl.DeleteShader(fshader);
         }
-
         private static void InitTargetsEndless()
         {
             endless = true;
@@ -214,12 +220,26 @@ namespace UNI_AIM
             float hitboxRadius = 6f;
             foreach (var pos in targetPositionSet)
             {
-                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
-                targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(10f), hitboxRadius));
+                if (ducks == true)
+                {
+                    Console.WriteLine("Adding duck");
+                    GlObject glObject;
+                    glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "12249_Bird_v1_L2.obj", "12249_Bird_v1_diff.jpg");
+                    glObject.Translation = Matrix4X4.CreateRotationX(((float)Math.PI / 2.0f));
+                    targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(1.0f), hitboxRadius));
+                }
+                else
+                {
+                    Console.WriteLine("Adding sphere");
+                    GlObject glObject;
+                    glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
+                    targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(10f), hitboxRadius));
+                }
             }
         }
         private static void InitTargetsRandom()
         {
+            targetPositionSet.Clear();
             float speed = 0.1f;
             Vector3D<float> spacing = new Vector3D<float>(75, 75, -50);
             int moveCount = 5;
@@ -230,6 +250,7 @@ namespace UNI_AIM
                 moveBitsPlus[i] = (float)random.NextDouble() * speed + speed;
                 moveBitsMinus[i] = -moveBitsPlus[i];
             }
+            targetMoveSet = new List<Vector3D<float>>();
             for (int i = 0; i < moveCount; i++)
             {
 
@@ -251,6 +272,7 @@ namespace UNI_AIM
                     0f));
             }
             targetMoveSet = targetMoveSet.OrderBy(x => Random.Shared.Next()).ToList();
+            targetPositionSet.Clear();
             for (int i = 0; i < targetCount; i++)
             {
                 targetPositionSet.Add(new Vector3D<float>(
@@ -258,15 +280,27 @@ namespace UNI_AIM
                     (float)random.NextDouble() * spacing.Y - spacing.Y / 2.0f,
                     spacing.Z));
             }
-
             float hitboxRadius = 6f;
             foreach (var pos in targetPositionSet)
             {
-                GlObject glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
-                targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(10f), random.NextDouble() * 2, (int)random.Next(targetMoveSet.Count), false, hitboxRadius));
+                if (ducks == true)
+                {
+                    GlObject glObject;
+                    glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "12249_Bird_v1_L2.obj", "12249_Bird_v1_diff.jpg");
+                    glObject.Translation = Matrix4X4.CreateRotationX(((float)Math.PI / 2.0f));
+                    //targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(0.01f), hitboxRadius));
+                    targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(0.01f),
+                        random.NextDouble() * 2, (int)random.Next(targetMoveSet.Count), false, hitboxRadius));
+                }
+                else
+                {
+                    GlObject glObject;
+                    glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
+                    //targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(10f), hitboxRadius));
+                    targets.Add(new GlObjectTarget(glObject, Gl, pos, targetMoveSet, Matrix4X4.CreateScale(10f),
+                        random.NextDouble() * 2, (int)random.Next(targetMoveSet.Count), false, hitboxRadius));
+                }
             }
-            //targetMoveSet.Clear();
-            //targetPositionSet.Clear();
         }
         private static string ReadShader(string shaderFileName)
         {
@@ -354,7 +388,6 @@ namespace UNI_AIM
             // make sure it is threadsafe
             // NO GL calls
 
-            cubeArrangementModel.AdvanceTime(deltaTime);
             cameraDescriptor.Update(deltaTime);
 
             float moveSpeed = (float)deltaTime;
@@ -460,6 +493,10 @@ namespace UNI_AIM
                 if (target.isShot() == true)
                 {
                     toRemove.Add(target);
+                    if (targets.Count == 1)
+                    {
+                        started = false;
+                    }
                 }
             }
             foreach (var target in toRemove)
@@ -488,13 +525,15 @@ namespace UNI_AIM
             switch (buttonName)
             {
                 case "resetButton":
-                    endless = false;
                     if (targets.Count == 0)
                     {
+                        started = true;
+                        endless = false;
                         InitTargetsRandom();
                     }
                     break;
                 case "deleteButton":
+                    started = false;
                     foreach (var target in targets)
                     {
                         target.ReleaseGlObject();
@@ -504,9 +543,47 @@ namespace UNI_AIM
                 case "endlessButton":
                     if(targets.Count == 0)
                     {
+                        started = true;
                         InitTargetsEndless();
                     }
                     break;
+                case "plusTargetButton":
+                    Console.WriteLine("Plus target pressed");
+                    if (started == false)
+                    {
+                        Console.WriteLine("Target added");
+                        targetCount++;
+                    }
+                    break;
+                case "minusTargetButton":
+                    Console.WriteLine("Minus target pressed");
+                    if (started == false && targetCount > 1)
+                    {
+                        Console.WriteLine("Target removed");
+                        targetCount--;
+                    }
+                    break;
+                case "plusFovButton":
+                    if(started == false)
+                    {
+                        fov++;
+                    }
+                    break;
+                case "minusFovButton":
+                    if(started == false)
+                    {
+                        fov--;
+                    }
+                    break;
+                case "ducksButton":
+                    Console.WriteLine("Ducks pressed");
+                    if (started == false)
+                    {
+                        Console.WriteLine("Ducks changed");
+                        ducks = !ducks;
+                    }
+                    break;
+
             }
         }
 
@@ -751,31 +828,49 @@ namespace UNI_AIM
         private static unsafe void SetUpObjects()
         {
             skyBox = GlCube.CreateInteriorCube(Gl, "");
-            //pigeon = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "12249_Bird_v1_L2.obj", "12249_Bird_v1_diff.jpg");
             GlObject glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "Çè-47.obj", "123456_wire_115115115_color.png");
+            
             ak47 = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
             ak47.Scale = Matrix4X4.CreateScale(0.001f);
             ak47.RotationMatrix = (Matrix4X4<float>)Matrix4X4.CreateRotationY((float)Math.PI);
-            //glObject.ReleaseGlObject();
-
-            //glObject = ObjectResourceReader.CreateObjectWithTextureFromResource(Gl, "18364_Christianity-Cross_V1.obj", "Blank_image.jpg");
-            //crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
-            //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "18364_Christianity-Cross_V1.obj");
+            
             glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "golfball_lowpoly.obj", RedColor);
-            //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj");
             crosshair = new GlObjectWeapon(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, Gl, glObject.Texture.Value);
             crosshair.Scale = Matrix4X4.CreateScale(0.001f);
             crosshair.RotationMatrix = Matrix4X4.CreateRotationZ((float)Math.PI);
             
-            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", GreenColor50);
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", BlueColor50);
             resetTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 0.0f, 20.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "resetButton");
             
-            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", RedColor75);
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", RedColor);
             deleteTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 0.0f, 21.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "deleteButton");
 
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", BlueColor);
+            endlessTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 1.0f, 20.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "endlessButton"); 
+            
             glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", GreenColor50);
-            endlessTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 1.0f, 20.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "endlessButton");
-            buttons = new List<GlObjectButton> { resetTargetButton, deleteTargetButton, endlessTargetButton };
+            plusTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 1.0f, 18.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.7f, "plusTargetButton");
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", RedColor75);
+            minusTargetButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 0.0f, 18.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "minusTargetButton");
+
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", GreenColor50);
+            plusFovButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 1.0f, 19.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "plusFovButton");
+            glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", RedColor75);
+            minusFovButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, 0.0f, 19.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "minusFovButton");
+
+            //glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", YellowColor);
+            //ducksButton = new GlObjectButton(glObject, Gl, new Vector3D<float>(5.0f, -1f, 19.0f), (Matrix4X4<float>)Matrix4X4.CreateScale(0.8), 0.45f, "ducksButton");
+
+            buttons = new List<GlObjectButton> { 
+                resetTargetButton,
+                deleteTargetButton,
+                endlessTargetButton,
+                plusTargetButton,
+                minusTargetButton,
+                plusFovButton,
+                minusFovButton,
+                //ducksButton,
+            };
             CheckError();
         }
 
@@ -806,7 +901,7 @@ namespace UNI_AIM
         }
         private static unsafe void SetProjectionMatrix()
         {
-            var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>((float)Math.PI / 2f, 1024f / 768f, 0.1f, 5000);
+            var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>(((float)Math.PI / 180) * fov, 1024f / 768f, 0.1f, 5000);
             int location = Gl.GetUniformLocation(program, ProjectionMatrixVariableName);
 
             if (location == -1)
@@ -870,10 +965,10 @@ namespace UNI_AIM
                 Console.WriteLine("Resource not found: " + resourceName);
                 return;
             }
-            InitializePlayer();
+            InitializeSoundPlayer();
         }
 
-        private static void InitializePlayer()
+        private static void InitializeSoundPlayer()
         {
             if (mp3FileReader != null) mp3FileReader.Dispose();
             if (waveOut != null) waveOut.Dispose();
