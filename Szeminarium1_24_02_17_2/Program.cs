@@ -322,6 +322,9 @@ namespace UNI_AIM
                 case Key.E:
                     silentMode = !silentMode;
                     break;
+                case Key.N:
+                    cameraDescriptor.SetDefaultAngle();
+                    break;
             }
         }
 
@@ -548,18 +551,18 @@ namespace UNI_AIM
                     }
                     break;
                 case "plusTargetButton":
-                    Console.WriteLine("Plus target pressed");
+                    //Console.WriteLine("Plus target pressed");
                     if (started == false)
                     {
-                        Console.WriteLine("Target added");
+                        //Console.WriteLine("Target added");
                         targetCount++;
                     }
                     break;
                 case "minusTargetButton":
-                    Console.WriteLine("Minus target pressed");
+                    //Console.WriteLine("Minus target pressed");
                     if (started == false && targetCount > 1)
                     {
-                        Console.WriteLine("Target removed");
+                        //Console.WriteLine("Target removed");
                         targetCount--;
                     }
                     break;
@@ -579,7 +582,7 @@ namespace UNI_AIM
                     Console.WriteLine("Ducks pressed");
                     if (started == false)
                     {
-                        Console.WriteLine("Ducks changed");
+                        Console.WriteLine("Ducks changed: " + ducks);
                         ducks = !ducks;
                     }
                     break;

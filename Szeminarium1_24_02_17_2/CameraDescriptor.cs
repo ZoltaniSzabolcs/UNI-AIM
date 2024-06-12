@@ -65,6 +65,18 @@ namespace UNI_AIM
             CalculateCameraAngles();
         }
 
+        public void SetDefaultAngle()
+        {
+            CameraYaw = -90f;
+            CameraPitch = 0f;
+            CameraZoom = 45f;
+            CameraPosition = new Vector3D<float>(0.0f, 0.0f, 20.0f);
+            CameraFront = new Vector3D<float>(0.0f, 0.0f, -1.0f);
+            CameraUp = Vector3D<float>.UnitY;
+            CameraRight = Vector3D<float>.UnitX;
+            CameraDirection = Vector3D<float>.Zero;
+    }
+
         public void Bump()
         {
             firingAnimationi.Add(0);
