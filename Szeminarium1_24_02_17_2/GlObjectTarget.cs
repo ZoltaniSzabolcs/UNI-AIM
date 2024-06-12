@@ -33,6 +33,7 @@ namespace UNI_AIM
             this.ModelMatrix = Scale * Translation;
         }
 
+        
         public GlObjectTarget(GlObject glObject, GL gl, Vector3D<float> Position, List<Vector3D<float>> Movement, Matrix4X4<float> Scale,
              double timeToChange, int iMovement, bool dead, float hitboxRadius, uint texture = 0)
             : base(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, gl, texture)
@@ -50,6 +51,23 @@ namespace UNI_AIM
             this.Translation = Matrix4X4.CreateTranslation(Position);
             this.ModelMatrix = Scale * Translation;
         }
+
+        public GlObjectTarget(GlObject glObject, GL gl, Vector3D<float> Position, Matrix4X4<float> Scale,
+            float hitboxRadius, uint texture = 0)
+            : base(glObject.Vao, glObject.Vertices, glObject.Colors, glObject.Indices, glObject.IndexArrayLength, gl, texture)
+        {
+            this.Position = Position;
+            this.Scale = Scale;
+            this.Movement = new List<Vector3D<float>>();
+            this.timeToChange = 0d;
+            this.Time = 0;
+            this.iMovement = 0;
+            this.Velocity = new Vector3D<float>(0f, 0f, 0f);
+            this.hitboxRadius = hitboxRadius;
+            this.Translation = Matrix4X4.CreateTranslation(Position);
+            this.ModelMatrix = Scale * Translation;
+        }
+
 
         public List<Vector3D<float>> getMovement() { return this.Movement; }
 
@@ -79,13 +97,12 @@ namespace UNI_AIM
 
         public float getHitboxRadius() {  return this.hitboxRadius; }
         public Vector3D<float> getPosition() { return this.Position; }
+        public void setPosition(Vector3D<float> Position) { this.Position = Position; }
 
         public bool isShot() {  return this.shot; }
         //public bool isDead() { return this.dead; }
-        private void UpdateModelMatrix()
+        public void UpdateModelMatrix()
         {
-            //Matrix4X4<float> currentTranslation = Matrix4X4.CreateTranslation(-Position.X, Position.Y, -Position.Z);
-            //this.ModelMatrix = this.Scale * currentTranslation;
             this.ModelMatrix = this.Scale * this.Translation;
         }
         private static float DegreesToRadians(float degrees)
