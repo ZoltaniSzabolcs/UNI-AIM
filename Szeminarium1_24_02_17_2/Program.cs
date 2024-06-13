@@ -8,6 +8,7 @@ using Silk.NET.Maths;
 using Silk.NET.OpenGL;
 using Silk.NET.OpenGL.Extensions.ImGui;
 using Silk.NET.Windowing;
+using Silk.NET.Vulkan;
 
 /* Zoltani Szabolcs
  * 524/2
@@ -19,7 +20,6 @@ namespace UNI_AIM
     internal static class Program
     {
         private static CameraDescriptor cameraDescriptor = new CameraDescriptor();
-        private static int fov;
         //private static CameraDescriptor cameraDescriptor = new CameraDescriptor(new Vector3D<float>(0f, 0f, 20f));
 
         private static IWindow window;
@@ -37,6 +37,7 @@ namespace UNI_AIM
 
         private static GlCube skyBox;
 
+        private static PlayerStatistics playerStatistics;
         private static GlObjectWeapon ak47;
         private static GlObjectWeapon crosshair;
         private static bool weaponHolstered;
@@ -77,7 +78,7 @@ namespace UNI_AIM
         private static IInputContext inputContext;
         private static string inputTextX = "", inputTextY = "", inputTextZ = "";
 
-        // --------------------------------- fenybeallitashoz valtozok --------------------------------------------
+        // --------------------------------- Light settings --------------------------------------------
         private static Vector3D<float> lightPosition = new Vector3D<float>(3f, 8f, 6f);
         private static float Shininess = 10;
         private static Vector3D<float> AmbientStrength = new Vector3D<float>(0.3f, 0.3f, 0.3f);
@@ -126,13 +127,13 @@ namespace UNI_AIM
 
         private static void Window_Load()
         {
+            playerStatistics = new PlayerStatistics();
             targetPositionSet = new List<Vector3D<float>>();
             //targetMoveSet = new List<Vector3D<float>>();
             endless = false;
             started = false;
             weaponHolstered = false;
             ducks = false;
-            fov = 80;
             random = new Random();
             //Console.WriteLine("Load");
 
@@ -325,6 +326,18 @@ namespace UNI_AIM
                 case Key.N:
                     cameraDescriptor.SetDefaultAngle();
                     break;
+                case Key.T:
+                    cameraDescriptor.ThirdPerson();
+                    break;
+                case Key.G:
+                    cameraDescriptor.setShowGui();
+                    break;
+                case Key.I:
+                    cameraDescriptor.MoreFov();
+                    break;
+                case Key.K:
+                    cameraDescriptor.LessFov();
+                    break;
             }
         }
 
@@ -426,7 +439,6 @@ namespace UNI_AIM
                 //Move down
                 cameraDescriptor.MoveDown(moveSpeed);
             }
-
             ak47.FollowCamera(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up, cameraDescriptor.Right);
             crosshair.CrosshairPlacement(cameraDescriptor.Position, cameraDescriptor.Front, cameraDescriptor.Up);
 
@@ -466,6 +478,14 @@ namespace UNI_AIM
             }
             foreach (var projectile in toRemoveProjectile)
             {
+                if (projectile.isHit() == true)
+                {
+                    playerStatistics.Hit();
+                }
+                else
+                {
+                    playerStatistics.Miss();
+                }
                 projectile.ReleaseGlObject();
                 projectiles.Remove(projectile);
             }
@@ -530,6 +550,7 @@ namespace UNI_AIM
                 case "resetButton":
                     if (targets.Count == 0)
                     {
+                        playerStatistics.ResetScore();
                         started = true;
                         endless = false;
                         InitTargetsRandom();
@@ -546,6 +567,7 @@ namespace UNI_AIM
                 case "endlessButton":
                     if(targets.Count == 0)
                     {
+                        playerStatistics.ResetScore();
                         started = true;
                         InitTargetsEndless();
                     }
@@ -569,13 +591,13 @@ namespace UNI_AIM
                 case "plusFovButton":
                     if(started == false)
                     {
-                        fov++;
+                        cameraDescriptor.MoreFov();
                     }
                     break;
                 case "minusFovButton":
                     if(started == false)
                     {
-                        fov--;
+                        cameraDescriptor.LessFov();
                     }
                     break;
                 case "ducksButton":
@@ -586,7 +608,6 @@ namespace UNI_AIM
                         ducks = !ducks;
                     }
                     break;
-
             }
         }
 
@@ -616,52 +637,21 @@ namespace UNI_AIM
 
             DrawGLObjects();
 
-            //ImguiSettings();
-            //controller.Render();
+            if(cameraDescriptor.isShowGUI() == true)
+            {
+                ImguiSettings();
+                controller.Render();
+            }
         }
 
         private static unsafe void ImguiSettings()
         {
-            // fenybeallitasok vezerlo hozzaadasa beallitasa
-            // beallitja hogy egybol latszodjanak ne egy lenyilo ablakocska legyen
-            ImGuiNET.ImGui.Begin("Lighting properties", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar);
-
-            ImGuiNET.ImGui.SliderFloat("Shininess", ref Shininess, 1, 80);
-            ImGui.Text("Ambient Light Color");
-            ImGuiNET.ImGui.SliderFloat("Red", ref ambientRed, 0, 1);
-            ImGuiNET.ImGui.SliderFloat("Green", ref ambientGreen, 0, 1);
-            ImGuiNET.ImGui.SliderFloat("Blue", ref ambientBlue, 0, 1);
-            // mutassa a kikevert szint es az aranyt hogy mibol mennyi van
-            Vector3 color = new Vector3(ambientRed, ambientGreen, ambientBlue);
-            ImGui.ColorEdit3("color", ref color);
-
-            float dobozSzelessege = ImGui.CalcTextSize("00000").X; // kiszamitjuk 5db 0 mennyi helyet foglal
-
-            ImGui.Text("Set Light Position");
-
-            // dobozok a feny poziciojanak a beallitasahoz
-            ImGui.SetNextItemWidth(dobozSzelessege);
-            if (ImGui.InputText("X coord", ref inputTextX, 5))
-            { // 100 a bemeneti szoveg meretet jelenti
-                lightPosition.X = (inputTextX == "" || inputTextX == "-") ? 0f : float.Parse(inputTextX);  // ha nem ir be semmit a felhasznalo akkor alapertelmezetten legyen 0
-                SetLightPosition();                     // inputText == "-" azert kell hogy ha beirok egy "-" jelet es meg nem irtam szamot ne akadjon ki a parsefloat
-            }
-
-            ImGui.SameLine(); // ugyanazon a vonalon tartjuk a widgetet
-            ImGui.SetNextItemWidth(dobozSzelessege);
-            if (ImGui.InputText("Y coord", ref inputTextY, 5))
-            { // 100 a bemeneti szoveg meretet jelenti
-                lightPosition.Y = (inputTextY == "" || inputTextY == "-") ? 0f : float.Parse(inputTextY);
-                SetLightPosition();
-            }
-
-            ImGui.SameLine();
-            ImGui.SetNextItemWidth(dobozSzelessege);
-            if (ImGui.InputText("Z coord", ref inputTextZ, 5))
-            { // 100 a bemeneti szoveg meretet jelenti
-                lightPosition.Z = (inputTextZ == "" || inputTextZ == "-") ? 0f : float.Parse(inputTextZ);
-                SetLightPosition();
-            }
+            ImGuiNET.ImGui.Begin("", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar);
+            ImGui.Text("Target count: " + targetCount);
+            ImGui.Text("Field of view: " + cameraDescriptor.GetFieldOfViewValue());
+            ImGui.Text("Targets alive: " + targets.Count);
+            ImGui.Text("Total accuracy: " + playerStatistics.GetTotalAccuracy());
+            ImGui.Text("Current accuracy: " + playerStatistics.GetCurrentAccuracy());
 
             ImGuiNET.ImGui.End();
         }
@@ -904,7 +894,7 @@ namespace UNI_AIM
         }
         private static unsafe void SetProjectionMatrix()
         {
-            var projectionMatrix = Matrix4X4.CreatePerspectiveFieldOfView<float>(((float)Math.PI / 180) * fov, 1024f / 768f, 0.1f, 5000);
+            var projectionMatrix = cameraDescriptor.GetFieldOfView();
             int location = Gl.GetUniformLocation(program, ProjectionMatrixVariableName);
 
             if (location == -1)

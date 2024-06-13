@@ -31,9 +31,15 @@ namespace UNI_AIM
         private static List<float> bumpUp;
         private static double Time;
         private static double TimeToChange;
+        private static bool isThirdPerson;
+        private static int fov;
+        private static bool showGui;
 
         public CameraDescriptor()
         {
+            isThirdPerson = false;
+            showGui = true;
+            fov = 80;
             int count = 25;
             firingAnimationi = new List<int>();
             bumpUp = new List<float>();
@@ -65,6 +71,16 @@ namespace UNI_AIM
             CalculateCameraAngles();
         }
 
+        public bool isShowGUI() {  return showGui; }
+        public void setShowGui() { showGui = !showGui; }
+
+        public int GetFieldOfViewValue() { return fov; }
+
+        public Matrix4X4<float> GetFieldOfView()
+        {
+            return Matrix4X4.CreatePerspectiveFieldOfView<float>(((float)Math.PI / 180) * fov, 1024f / 768f, 0.1f, 5000);
+        }
+
         public void SetDefaultAngle()
         {
             CameraYaw = -90f;
@@ -75,11 +91,21 @@ namespace UNI_AIM
             CameraUp = Vector3D<float>.UnitY;
             CameraRight = Vector3D<float>.UnitX;
             CameraDirection = Vector3D<float>.Zero;
-    }
+        }
 
         public void Bump()
         {
             firingAnimationi.Add(0);
+        }
+
+        public void MoreFov()
+        {
+            fov++;
+        }
+
+        public void LessFov()
+        {
+            fov--;
         }
 
         private static void CalculateCameraAngles()
@@ -121,6 +147,16 @@ namespace UNI_AIM
         }
         public Matrix4X4<float> getView()
         {
+            if(isThirdPerson == true)
+            {
+                Vector3D<float> pos = new Vector3D<float>();
+                pos.X = CameraPosition.X - 2.5f;
+                pos.Y = CameraPosition.Y + 1.5f;
+                pos.Z = CameraPosition.Z + 2f;
+                Vector3D<float> front = CameraFront;
+                Vector3D<float> up = CameraUp;
+                return Matrix4X4.CreateLookAt<float>(pos, CameraPosition, CameraUp);
+            }
             return Matrix4X4.CreateLookAt<float>(CameraPosition, CameraPosition + CameraFront, CameraUp);
         }
         public Matrix4X4<float> getProjection(Vector2D<int> size)
@@ -132,6 +168,11 @@ namespace UNI_AIM
         public Vector3D<float> Front { get { return CameraFront; } }
         public Vector3D<float> Up { get { return CameraUp; } }
         public Vector3D<float> Right { get { return CameraRight; } }
+
+        public void ThirdPerson()
+        {
+            isThirdPerson = !isThirdPerson;
+        }
 
         public float getCameraYaw()
         {
