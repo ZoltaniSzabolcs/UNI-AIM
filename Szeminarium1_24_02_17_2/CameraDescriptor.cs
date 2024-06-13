@@ -34,11 +34,13 @@ namespace UNI_AIM
         private static bool isThirdPerson;
         private static int fov;
         private static bool showGui;
+        private static bool showHelp;
 
         public CameraDescriptor()
         {
             isThirdPerson = false;
-            showGui = true;
+            showHelp = true;
+            showGui = false;
             fov = 80;
             int count = 25;
             firingAnimationi = new List<int>();
@@ -73,6 +75,8 @@ namespace UNI_AIM
 
         public bool isShowGUI() {  return showGui; }
         public void setShowGui() { showGui = !showGui; }
+        public bool isHelpShown() { return showHelp; }
+        public void setHelpShown() { showHelp = !showHelp; }
 
         public int GetFieldOfViewValue() { return fov; }
 

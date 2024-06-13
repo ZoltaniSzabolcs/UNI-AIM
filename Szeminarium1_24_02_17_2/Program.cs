@@ -231,7 +231,7 @@ namespace UNI_AIM
                 }
                 else
                 {
-                    Console.WriteLine("Adding sphere");
+                    //Console.WriteLine("Adding sphere");
                     GlObject glObject;
                     glObject = ObjectResourceReader.CreateObjectFromResource(Gl, "sphere.obj", WhiteColor);
                     targets.Add(new GlObjectTarget(glObject, Gl, pos, Matrix4X4.CreateScale(10f), hitboxRadius));
@@ -330,13 +330,34 @@ namespace UNI_AIM
                     cameraDescriptor.ThirdPerson();
                     break;
                 case Key.G:
-                    cameraDescriptor.setShowGui();
+                    if(cameraDescriptor.isHelpShown() == false)
+                    {
+                        cameraDescriptor.setShowGui();
+                    }
+                    break;
+                case Key.H:
+                    if(cameraDescriptor.isShowGUI() == false)
+                    {
+                        cameraDescriptor.setHelpShown();
+                    }
                     break;
                 case Key.I:
                     cameraDescriptor.MoreFov();
                     break;
                 case Key.K:
                     cameraDescriptor.LessFov();
+                    break;
+                case Key.U:
+                    if (started == false)
+                    {
+                        targetCount++;
+                    }
+                    break;
+                case Key.J:
+                    if (started == false && targetCount > 1)
+                    {
+                        targetCount--;
+                    }
                     break;
             }
         }
@@ -478,13 +499,16 @@ namespace UNI_AIM
             }
             foreach (var projectile in toRemoveProjectile)
             {
-                if (projectile.isHit() == true)
+                if (projectile.isHit() == true && started == true)
                 {
                     playerStatistics.Hit();
                 }
                 else
                 {
-                    playerStatistics.Miss();
+                    if(started == true)
+                    {
+                        playerStatistics.Miss();
+                    }
                 }
                 projectile.ReleaseGlObject();
                 projectiles.Remove(projectile);
@@ -639,14 +663,42 @@ namespace UNI_AIM
 
             if(cameraDescriptor.isShowGUI() == true)
             {
-                ImguiSettings();
+                ImguiStatistics();
+                controller.Render();
+            }
+            if(cameraDescriptor.isHelpShown() == true)
+            {
+                ImguiHelp();
                 controller.Render();
             }
         }
 
-        private static unsafe void ImguiSettings()
+        private static unsafe void ImguiHelp()
         {
-            ImGuiNET.ImGui.Begin("", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar);
+            ImGuiNET.ImGui.Begin("Help", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar);
+            ImGui.Text("On the right there are 7 buttons you can shoot");
+            ImGui.Text("The first up down pair changes the number of targets");
+            ImGui.Text("The second to pair change the angle of field of view");
+            ImGui.Text("The upper blue starts endless aim training");
+            ImGui.Text("The bottom blue starts moving target training");
+            ImGui.Text("Press WASD to move");
+            ImGui.Text("Use your primary mouse to aim");
+            ImGui.Text("\tH - toggle help gui");
+            ImGui.Text("\tQ - holster weapon");
+            ImGui.Text("\tE - make silent weapon");
+            ImGui.Text("\tT - third person view");
+            ImGui.Text("\tI - increase field of view angle by 1");
+            ImGui.Text("\tK - decrease field of view angle by 1");
+            ImGui.Text("\tU - increase target count");
+            ImGui.Text("\tJ - decrease target count");
+            ImGui.Text("\tN - reset player position");
+
+            ImGuiNET.ImGui.End();
+        }
+
+        private static unsafe void ImguiStatistics()
+        {
+            ImGuiNET.ImGui.Begin("Statistics", ImGuiWindowFlags.AlwaysAutoResize | ImGuiWindowFlags.NoTitleBar);
             ImGui.Text("Target count: " + targetCount);
             ImGui.Text("Field of view: " + cameraDescriptor.GetFieldOfViewValue());
             ImGui.Text("Targets alive: " + targets.Count);
