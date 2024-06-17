@@ -55,7 +55,7 @@ namespace UNI_AIM
         private static GlObjectButton plusFovButton;
         private static GlObjectButton minusFovButton;
         //private static GlObjectButton ducksButton;
-        private static int targetCount = 1;
+        private static int targetCount = 5;
 
         private static List<GlObjectProjectile> projectiles;
 
@@ -108,7 +108,7 @@ namespace UNI_AIM
         {
             WindowOptions windowOptions = WindowOptions.Default;
             windowOptions.Title = "UNI-AIM";
-            windowOptions.Size = new Vector2D<int>(1200, 1200);
+            windowOptions.Size = new Vector2D<int>(1500, 1500);
 
             // on some systems there is no depth buffer by default, so we need to make sure one is created
             windowOptions.PreferredDepthBufferBits = 24;
